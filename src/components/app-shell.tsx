@@ -5,6 +5,7 @@ const navItems = [
   { href: "/projects/new", label: "Create Project" },
   { href: "/projects/active", label: "Active Projects" },
   { href: "/projects/archived", label: "Archived" },
+  { href: "/purchase", label: "Purchase" },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {

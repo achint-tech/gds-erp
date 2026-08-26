@@ -7,7 +7,7 @@ import {
   approvedProjectTypes,
   nextPrototypeJobCode,
   projectLeads,
-  prototypeProjectManagers,
+  approvedProjectManagers,
 } from "@/lib/prototype-data";
 import {
   projectFieldNames,
@@ -116,9 +116,8 @@ export function ProjectForm() {
           label="Project Manager"
           value={values.projectManager}
           error={errors.projectManager}
-          options={prototypeProjectManagers}
+          options={approvedProjectManagers}
           onChange={update}
-          prototypeOnly
         />
         <SelectField
           name="status"
@@ -213,7 +212,6 @@ function SelectField({
   error,
   options,
   onChange,
-  prototypeOnly,
 }: {
   name: keyof ProjectFormValues;
   label: string;
@@ -221,17 +219,11 @@ function SelectField({
   error?: string;
   options: readonly string[];
   onChange: (name: keyof ProjectFormValues, value: string) => void;
-  prototypeOnly?: boolean;
 }) {
   return (
     <div className="field">
       <label htmlFor={name}>
         {label} <Required />
-        {prototypeOnly && (
-          <span className="ml-2 font-normal text-amber-700">
-            Prototype-only list
-          </span>
-        )}
       </label>
       <select
         id={name}

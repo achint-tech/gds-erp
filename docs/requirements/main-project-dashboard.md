@@ -44,11 +44,12 @@ The Create Project form contains:
 - Draft projects do not appear in Active Projects.
 - A project enters Active Projects only after all mandatory fields are completed and submitted.
 - Brand remains a text field in the prototype and will later become searchable/selectable.
-- The final Project Manager list remains unresolved; prototype values must be clearly labelled.
+- Approved Project Managers are Anumeha, Sachin, and Neeraj.
 
 ## Approved Project Types
 
 - Civil
+- SIS
 - Turnkey
 - Fixtures
 
@@ -56,15 +57,16 @@ The Create Project form contains:
 
 Project Status is manually selected from:
 
-1. PO Received
-2. Project Planning
-3. Design in Progress
-4. In Production
-5. Installation
-6. Measurement
-7. Handover
-8. Billing
-9. Payment
+1. Quotation
+2. PO Received
+3. Project Planning
+4. Design in Progress
+5. In Production
+6. Installation
+7. Measurement
+8. Handover
+9. Billing
+10. Payment
 
 ## Active Projects dashboard
 
@@ -107,6 +109,64 @@ Below the overview, a restrained placeholder indicates that the detailed project
 
 Do not define workflow stages, department tabs, financial information, document sections, or closure sections beyond the approved overview.
 
+## Costing & Quotation
+
+- The Project Overview includes a `Costing & Quotation` section for the approved Pre-PO commercial workflow.
+- Costing calculations remain in existing Google Sheets for V1.
+- GDS ERP stores and organises links to client BOQs, internal production costing, vendor costing, final costing, and quotation versions.
+- Google Sheet and Google Drive documents are represented by manually entered URLs only.
+- A project may use Internal Production, an External Vendor, or both as costing sources.
+- A project may have multiple vendor costing sources.
+- A Costing Source may cover one or more Work Categories.
+- Multiple costing sources may cover the same Work Category, and internal and vendor costing may coexist for the same category.
+- The workspace displays costing status, owner, method, final internal cost, current quotation amount and version, quotation status, and last-updated information.
+- The workspace records costing documents, costing sources, quotation versions, and commercial notes.
+- The full Costing & Quotation workspace is displayed only within its dedicated project section. Project Overview contains only a compact commercial summary.
+- Project Type determines the default/recommended Costing Work Categories presented in the UI. The underlying costing model remains flexible, and additional categories may be added when required.
+- Prototype additions use local React state and are not persisted.
+- Native costing calculations and document attachment features are deferred.
+- PO-to-project conversion is deferred.
+- Margin calculations, costing formulas, quotation generation, approvals, notifications, and email sending are not part of this workflow.
+
+## Purchase Order information
+
+- V1 PO information consists of PO Number, PO Date, PO Amount, PO Document Link, PO Notes, and Added Date.
+- Project documents continue to be stored in Google Drive for V1; the ERP stores manually entered links.
+- Project Overview displays a compact PO summary when PO information exists and a restrained empty state otherwise.
+- File uploads, Google Drive integration, PO parsing, OCR, accounting integration, automatic PO validation, and automatic project conversion are deferred.
+
+## Design
+
+- Design may occur before or after PO.
+- Project Status and Design Task Status are independent.
+- Design Tasks track Assigned Date, Due Date, and Completed Date as separate fields.
+- One Design Task represents one Design Version, and historical versions remain intact.
+- Completed Date and Submitted Date are separate.
+- Design Task Status and Client Response Status are independent.
+- A drawing link is required to complete a Design Task.
+- Submitting a completed version closes it and records that it is waiting for the client.
+- Approved responses retain the version; requested revisions create the next sequential version.
+- Incomplete Design Tasks are automatically highlighted from their Due Date.
+- Project Overview contains only a compact Design summary.
+- Full Design management is displayed only in the dedicated `Design` project section.
+- Design is not hidden or automatically completed based on Project Status.
+
+## Purchase Workflow
+
+- The dedicated `Purchase` project section manages material, product, and item procurement only.
+- Execution subcontractors and vendor work orders are outside Purchase V1.
+- Project Overview contains only a compact Purchase summary.
+- Detailed material and item lists remain in Excel or Google Sheets for V1; ERP stores the corresponding Drive or Sheet link instead of native line items.
+- A Purchase Request may contain multiple supplier quotations.
+- Rate comparisons, supporting documents, supplier quotations, supplier POs, and urgent-purchase screenshots remain manually entered Google Drive or Google Sheets links.
+- Purchase Recommendation is not part of V1. After sourcing and optional rate comparison, requests proceed directly to Management Approval.
+- Management provides final Purchase approval; approval thresholds are not yet defined.
+- Supplier POs may record advance or credit dependencies without processing payments.
+- Delivery records receipt condition and may move an affected request to Replacement Pending.
+- Additional requirements after PO Issued create a new, optionally related Purchase Request.
+- Urgent Purchase is a lightweight local-prototype exception.
+- The Purchase Department dashboard provides a fictional cross-project view without authentication.
+
 ## Prototype boundary
 
 The initial visual prototype includes:
@@ -128,4 +188,3 @@ The prototype:
 - Does not implement financial calculations.
 - Does not implement database sequence generation.
 - Does not invent future project progression or internal project sections.
-
