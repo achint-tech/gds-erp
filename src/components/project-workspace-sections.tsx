@@ -1,0 +1,285 @@
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { displayValue } from "@/lib/costing-utils";
+import {
+  getLatestDesignVersions,
+  isActiveDesignTask,
+} from "@/lib/design-task-utils";
+import type { CostingSummary, DesignTask } from "@/lib/prototype-data";
+import type { PurchaseRequest } from "@/lib/purchase-data";
+import { getPurchaseHealth } from "@/lib/purchase-utils";
+import { getTaskHealth } from "@/lib/task-timing";
+
+type SectionName = "overview" | "costing" | "design" | "purchase";
+
+export function ProjectWorkspaceSections({
+  overview,
+  costing,
+  design,
+  purchase,
+  costingSummary,
+  designTasks = [],
+  purchaseRequests = [],
+}: {
+  overview: ReactNode;
+  costing: ReactNode;
+  design: ReactNode;
+  purchase: ReactNode;
+  costingSummary?: CostingSummary;
+  designTasks?: DesignTask[];
+  purchaseRequests?: PurchaseRequest[];
+}) {
+  const [activeSection, setActiveSection] = useState<SectionName>("overview");
+  return (
+    <>
+      <div
+        className="mb-5 flex gap-1 overflow-x-auto border-b border-slate-200"
+        role="tablist"
+        aria-label="Project workspace sections"
+      >
+        <TabButton
+          active={activeSection === "overview"}
+          onClick={() => setActiveSection("overview")}
+        >
+          Project Overview
+        </TabButton>
+        <TabButton
+          active={activeSection === "costing"}
+          onClick={() => setActiveSection("costing")}
+        >
+          Costing &amp; Quotation
+        </TabButton>
+        <TabButton
+          active={activeSection === "design"}
+          onClick={() => setActiveSection("design")}
+        >
+          Design
+        </TabButton>
+        <TabButton
+          active={activeSection === "purchase"}
+          onClick={() => setActiveSection("purchase")}
+        >
+          Purchase
+        </TabButton>
+      </div>
+      {activeSection === "overview" ? (
+        <div role="tabpanel" aria-label="Project Overview">
+          {overview}
+          <section
+            className="panel mt-5 overflow-hidden"
+            aria-labelledby="compact-costing-heading"
+          >
+            <div className="flex flex-col justify-between gap-3 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center">
+              <div>
+                <h2 id="compact-costing-heading" className="font-bold">
+                  Costing Summary
+                </h2>
+                <p className="mt-1 text-xs text-slate-500">
+                  Compact commercial status for this project.
+                </p>
+              </div>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => setActiveSection("costing")}
+              >
+                View Costing &amp; Quotation
+              </button>
+            </div>
+            <dl className="grid sm:grid-cols-2 lg:grid-cols-5">
+              <SummaryItem
+                label="Costing Status"
+                value={costingSummary?.costingStatus}
+              />
+              <SummaryItem
+                label="Final Internal Cost"
+                value={costingSummary?.finalInternalCost}
+              />
+              <SummaryItem
+                label="Current Quotation Amount"
+                value={costingSummary?.currentQuotationAmount}
+              />
+              <SummaryItem
+                label="Current Quotation Version"
+                value={costingSummary?.currentQuotationVersion}
+              />
+              <SummaryItem
+                label="Quotation Status"
+                value={costingSummary?.quotationStatus}
+              />
+            </dl>
+          </section>
+          <DesignSummary
+            tasks={designTasks}
+            onView={() => setActiveSection("design")}
+          />
+          <PurchaseSummary
+            requests={purchaseRequests}
+            onView={() => setActiveSection("purchase")}
+          />
+        </div>
+      ) : activeSection === "costing" ? (
+        <div role="tabpanel" aria-label="Costing & Quotation">
+          {costing}
+        </div>
+      ) : activeSection === "design" ? (
+        <div role="tabpanel" aria-label="Design">
+          {design}
+        </div>
+      ) : (
+        <div role="tabpanel" aria-label="Purchase">
+          {purchase}
+        </div>
+      )}
+    </>
+  );
+}
+
+function PurchaseSummary({
+  requests,
+  onView,
+}: {
+  requests: PurchaseRequest[];
+  onView: () => void;
+}) {
+  const sourcing = requests.filter(
+    (request) => request.status === "Sourcing",
+  ).length;
+  const approval = requests.filter(
+    (request) => request.status === "Awaiting Approval",
+  ).length;
+  const delivery = requests.filter(
+    (request) => request.status === "Awaiting Delivery",
+  ).length;
+  const received = requests.filter(
+    (request) => request.status === "Received",
+  ).length;
+  const overdue = requests.filter((request) =>
+    getPurchaseHealth(request).health.includes("Overdue"),
+  );
+  return (
+    <section
+      className="panel mt-5 p-5"
+      aria-labelledby="purchase-summary-heading"
+    >
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Purchase</p>
+          <h2 id="purchase-summary-heading" className="mt-1 font-bold">
+            {requests.length} Requests
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {sourcing} Sourcing · {approval} Awaiting Approval · {delivery}{" "}
+            Awaiting Delivery · {overdue.length} Overdue · {received} Received
+          </p>
+          {overdue[0] && (
+            <p className="mt-3 text-sm font-semibold text-red-700">
+              Critical: {overdue[0].requestTitle} —{" "}
+              {getPurchaseHealth(overdue[0]).label}
+            </p>
+          )}
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onView}
+        >
+          View Purchase →
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function DesignSummary({
+  tasks,
+  onView,
+}: {
+  tasks: DesignTask[];
+  onView: () => void;
+}) {
+  const activeTasks = tasks.filter(isActiveDesignTask);
+  const latestVersions = getLatestDesignVersions(tasks);
+  const waiting = tasks.filter(
+    (task) => task.clientResponseStatus === "Waiting Client",
+  ).length;
+  const approvedStreams = latestVersions.filter(
+    (task) => task.clientResponseStatus === "Approved",
+  ).length;
+  const overdueTasks = activeTasks.filter(
+    (task) => getTaskHealth(task.status, task.dueDate).health === "Overdue",
+  );
+  return (
+    <section
+      className="panel mt-5 p-5"
+      aria-labelledby="design-summary-heading"
+    >
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Design</p>
+          <h2 id="design-summary-heading" className="mt-1 font-bold">
+            {activeTasks.length} Active
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {overdueTasks.length} Overdue · {waiting} Waiting Client ·{" "}
+            {approvedStreams} Approved Streams
+          </p>
+          {overdueTasks.length > 0 && (
+            <p className="mt-3 text-sm font-semibold text-red-700">
+              Critical: {overdueTasks[0].taskName} {overdueTasks[0].version} —{" "}
+              {
+                getTaskHealth(overdueTasks[0].status, overdueTasks[0].dueDate)
+                  .label
+              }
+              {overdueTasks.length > 1
+                ? ` · ${overdueTasks.length - 1} more overdue`
+                : ""}
+            </p>
+          )}
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onView}
+        >
+          View Design →
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function TabButton({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={active}
+      onClick={onClick}
+      className={`whitespace-nowrap border-b-2 px-3 py-2 text-sm ${active ? "border-blue-700 font-bold text-blue-900" : "border-transparent font-semibold text-slate-600 hover:text-slate-950"}`}
+    >
+      {children}
+    </button>
+  );
+}
+function SummaryItem({ label, value = "" }: { label: string; value?: string }) {
+  return (
+    <div className="border-b border-slate-100 px-5 py-4 lg:border-r">
+      <dt className="text-xs font-bold uppercase tracking-wide text-slate-500">
+        {label}
+      </dt>
+      <dd className="mt-2 text-sm font-semibold text-slate-800">
+        {displayValue(value)}
+      </dd>
+    </div>
+  );
+}

@@ -7,7 +7,7 @@ import {
   approvedProjectStatuses,
   approvedProjectTypes,
   projectLeads,
-  prototypeProjectManagers,
+  approvedProjectManagers,
   type Project,
 } from "@/lib/prototype-data";
 
@@ -82,7 +82,7 @@ export function ProjectsTable({
           <Filter
             label="All PMs"
             value={filters.manager}
-            options={prototypeProjectManagers}
+            options={approvedProjectManagers}
             onChange={(value) => set("manager", value)}
           />
           <Filter

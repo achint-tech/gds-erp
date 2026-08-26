@@ -1,6 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { activeProjects, archivedProjects } from "@/lib/prototype-data";
+import { CostingQuotationWorkspace } from "@/components/costing-quotation-workspace";
+import { DesignWorkspace } from "@/components/design-workspace";
+import { ProjectWorkspaceSections } from "@/components/project-workspace-sections";
+import { PurchaseWorkspace } from "@/components/purchase-workspace";
+import {
+  activeProjects,
+  archivedProjects,
+  costingWorkspaceByJobCode,
+  designTasksByJobCode,
+  purchaseOrdersByJobCode,
+} from "@/lib/prototype-data";
+import { formatTaskDate } from "@/lib/task-timing";
+import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -33,27 +45,20 @@ export default async function ProjectOverviewPage({
     (item) => item.jobCode === jobCode,
   );
   if (!project) notFound();
-  return (
+  const costingData = costingWorkspaceByJobCode[project.jobCode];
+  const designTasks = designTasksByJobCode[project.jobCode] ?? [];
+  const purchaseOrder = purchaseOrdersByJobCode[project.jobCode];
+  const projectPurchaseRequests = purchaseRequests.filter(
+    (request) => request.projectJobCode === project.jobCode,
+  );
+  const projectUrgentPurchases = urgentPurchases.filter(
+    (purchase) => purchase.projectJobCode === project.jobCode,
+  );
+
+  const overview = (
     <>
-      <Link
-        href="/projects/active"
-        className="mb-6 inline-flex text-sm font-bold text-blue-800 hover:underline"
-      >
-        ← Back to Active Projects
-      </Link>
-      <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="eyebrow">Project Overview / {project.jobCode}</p>
-          <h1 className="page-title">{project.projectName}</h1>
-          <p className="subtle mt-2 text-sm">
-            Approved initial project information · Fictional prototype record
-          </p>
-        </div>
-        <span className="w-fit rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-900">
-          {project.status}
-        </span>
-      </div>
       <section
+        id="project-overview"
         className="panel overflow-hidden"
         aria-labelledby="overview-heading"
       >
@@ -81,6 +86,50 @@ export default async function ProjectOverviewPage({
           ))}
         </dl>
       </section>
+      <section className="panel mt-5 p-5" aria-labelledby="po-summary-heading">
+        <p className="eyebrow">PO Received</p>
+        <h2 id="po-summary-heading" className="mt-1 font-bold">
+          Purchase Order
+        </h2>
+        {purchaseOrder ? (
+          <div className="mt-4 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+            <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-xs font-bold uppercase text-slate-500">
+                  PO Number
+                </dt>
+                <dd className="mt-1 font-semibold">{purchaseOrder.poNumber}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase text-slate-500">
+                  PO Date
+                </dt>
+                <dd className="mt-1 font-semibold">
+                  {formatTaskDate(purchaseOrder.poDate)}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs font-bold uppercase text-slate-500">
+                  PO Amount
+                </dt>
+                <dd className="mt-1 font-semibold">{purchaseOrder.poAmount}</dd>
+              </div>
+            </dl>
+            <a
+              className="button button-secondary"
+              href={purchaseOrder.poDocumentLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open PO ↗
+            </a>
+          </div>
+        ) : (
+          <p className="mt-3 text-sm text-slate-500">
+            No PO information has been added.
+          </p>
+        )}
+      </section>
       <section className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center">
         <h2 className="text-sm font-bold text-slate-700">
           Detailed project progression
@@ -89,6 +138,57 @@ export default async function ProjectOverviewPage({
           The detailed project progression workflow will be designed next.
         </p>
       </section>
+    </>
+  );
+
+  const costing = (
+    <CostingQuotationWorkspace
+      jobCode={project.jobCode}
+      owner={project.projectManager}
+      projectType={project.projectType}
+      initialData={costingData}
+    />
+  );
+  const design = (
+    <DesignWorkspace jobCode={project.jobCode} initialTasks={designTasks} />
+  );
+  const purchase = (
+    <PurchaseWorkspace
+      jobCode={project.jobCode}
+      initialRequests={projectPurchaseRequests}
+      initialUrgent={projectUrgentPurchases}
+    />
+  );
+
+  return (
+    <>
+      <Link
+        href="/projects/active"
+        className="mb-6 inline-flex text-sm font-bold text-blue-800 hover:underline"
+      >
+        ← Back to Active Projects
+      </Link>
+      <div className="mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="eyebrow">Project Overview / {project.jobCode}</p>
+          <h1 className="page-title">{project.projectName}</h1>
+          <p className="subtle mt-2 text-sm">
+            Approved initial project information · Fictional prototype record
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-900">
+          {project.status}
+        </span>
+      </div>
+      <ProjectWorkspaceSections
+        overview={overview}
+        costing={costing}
+        design={design}
+        purchase={purchase}
+        costingSummary={costingData?.summary}
+        designTasks={designTasks}
+        purchaseRequests={projectPurchaseRequests}
+      />
     </>
   );
 }
