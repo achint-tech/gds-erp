@@ -46,12 +46,29 @@ export const delayReasons = [
 ] as const;
 
 export const qcStatuses = ["Pending", "Passed", "Rework Required"] as const;
+export const dispatchStatuses = ["Draft", "Dispatched", "Cancelled"] as const;
 
 export type ProductionStatus = (typeof productionStatuses)[number];
 export type MaterialStatus = (typeof materialStatuses)[number];
 export type ProductionProcessName = (typeof productionProcessNames)[number];
 export type DelayReason = (typeof delayReasons)[number];
 export type QCStatus = (typeof qcStatuses)[number];
+export type DispatchStatus = (typeof dispatchStatuses)[number];
+export type DispatchItem = { fixtureId: string; quantity: number };
+export type DispatchRecord = {
+  id: string;
+  jobCode: string;
+  dispatchDate: string;
+  destination: string;
+  items: DispatchItem[];
+  vehicleOrTransporter: string;
+  driverOrContact: string;
+  dispatchDocumentLink: string;
+  notes: string;
+  status: DispatchStatus;
+  cancellationReason: string;
+  cancellationDate: string;
+};
 export type ProductionProcess = {
   name: ProductionProcessName;
   executionType: "In-house" | "Outsourced";
@@ -284,5 +301,50 @@ export const productionRecords: ProductionRecord[] = [
       reworkDeadline: "",
     },
     notes: "Fictional overdue fixture batch.",
+  },
+];
+
+export const dispatchRecords: DispatchRecord[] = [
+  {
+    id: "DSP-149-01",
+    jobCode: "GDS149",
+    dispatchDate: "2026-08-28",
+    destination: "Fictional Jaipur Site",
+    items: [{ fixtureId: "PROD-149-02", quantity: 12 }],
+    vehicleOrTransporter: "Prototype Transporter A",
+    driverOrContact: "Prototype Contact",
+    dispatchDocumentLink: drive,
+    notes: "Fictional single-destination dispatch.",
+    status: "Dispatched",
+    cancellationReason: "",
+    cancellationDate: "",
+  },
+  {
+    id: "DSP-150-01",
+    jobCode: "GDS150",
+    dispatchDate: "2026-09-01",
+    destination: "Fictional North Site",
+    items: [{ fixtureId: "PROD-150-01", quantity: 5 }],
+    vehicleOrTransporter: "Prototype Transporter B",
+    driverOrContact: "",
+    dispatchDocumentLink: drive,
+    notes: "First fictional partial dispatch.",
+    status: "Dispatched",
+    cancellationReason: "",
+    cancellationDate: "",
+  },
+  {
+    id: "DSP-150-02",
+    jobCode: "GDS150",
+    dispatchDate: "2026-09-01",
+    destination: "Fictional South Site",
+    items: [{ fixtureId: "PROD-150-01", quantity: 3 }],
+    vehicleOrTransporter: "Prototype Transporter C",
+    driverOrContact: "",
+    dispatchDocumentLink: "",
+    notes: "Second destination for the same fixture batch.",
+    status: "Dispatched",
+    cancellationReason: "",
+    cancellationDate: "",
   },
 ];

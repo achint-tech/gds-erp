@@ -14,7 +14,7 @@ import {
 } from "@/lib/prototype-data";
 import { formatTaskDate } from "@/lib/task-timing";
 import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
-import { productionRecords } from "@/lib/production-data";
+import { dispatchRecords, productionRecords } from "@/lib/production-data";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -60,6 +60,9 @@ export default async function ProjectOverviewPage({
     (purchase) => purchase.projectJobCode === project.jobCode,
   );
   const projectProductionRecords = productionRecords.filter(
+    (record) => record.jobCode === project.jobCode,
+  );
+  const projectDispatchRecords = dispatchRecords.filter(
     (record) => record.jobCode === project.jobCode,
   );
 
@@ -167,7 +170,12 @@ export default async function ProjectOverviewPage({
       initialUrgent={projectUrgentPurchases}
     />
   );
-  const production = <ProductionWorkspace records={projectProductionRecords} />;
+  const production = (
+    <ProductionWorkspace
+      records={projectProductionRecords}
+      initialDispatches={projectDispatchRecords}
+    />
+  );
 
   return (
     <>
@@ -199,6 +207,7 @@ export default async function ProjectOverviewPage({
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
         productionRecords={projectProductionRecords}
+        dispatchRecords={projectDispatchRecords}
         initialSection={section}
       />
     </>

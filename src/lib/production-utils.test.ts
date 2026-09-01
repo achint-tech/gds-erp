@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { productionRecords } from "./production-data";
+import { dispatchRecords, productionRecords } from "./production-data";
 import {
   deriveQCStatus,
   getProductionHealth,
   getProductionProgress,
+  getDispatchSummary,
+  getFixtureDispatchedQty,
+  validateDispatchItems,
 } from "./production-utils";
 
 describe("production calculations", () => {
@@ -50,5 +53,44 @@ describe("production calculations", () => {
         reworkQty: 1,
       }),
     ).toBe("Rework Required");
+  });
+  it("counts dispatched quantities and excludes cancelled records", () => {
+    const cancelled = {
+      ...dispatchRecords[0],
+      id: "CANCELLED",
+      status: "Cancelled" as const,
+    };
+    expect(
+      getFixtureDispatchedQty("PROD-149-02", [dispatchRecords[0], cancelled]),
+    ).toBe(12);
+  });
+  it("derives partial and fully dispatched status", () => {
+    expect(
+      getDispatchSummary(
+        productionRecords.filter((record) => record.jobCode === "GDS150"),
+        dispatchRecords.filter((record) => record.jobCode === "GDS150"),
+      ).dispatchStatus,
+    ).toBe("Partially Dispatched");
+    expect(
+      getDispatchSummary([productionRecords[1]], [dispatchRecords[0]])
+        .dispatchStatus,
+    ).toBe("Fully Dispatched");
+  });
+  it("rejects over-dispatch and non-positive quantities", () => {
+    const fixture = productionRecords[1];
+    expect(
+      validateDispatchItems(
+        [{ fixtureId: fixture.id, quantity: 1 }],
+        [fixture],
+        [dispatchRecords[0]],
+      ).valid,
+    ).toBe(false);
+    expect(
+      validateDispatchItems(
+        [{ fixtureId: fixture.id, quantity: 0 }],
+        [fixture],
+        [],
+      ).valid,
+    ).toBe(false);
   });
 });

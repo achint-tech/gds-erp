@@ -1,21 +1,32 @@
 "use client";
 
-import { useState } from "react";
-import type { ProductionRecord } from "@/lib/production-data";
+import { useState, type FormEvent } from "react";
+import {
+  dispatchStatuses,
+  type DispatchRecord,
+  type ProductionRecord,
+} from "@/lib/production-data";
 import {
   deriveQCStatus,
+  getDispatchSummary,
+  getFixtureDispatchedQty,
   getProductionHealth,
   getProductionProgress,
+  validateDispatchItems,
 } from "@/lib/production-utils";
 import { formatTaskDate } from "@/lib/task-timing";
 
 export function ProductionWorkspace({
   records,
+  initialDispatches = [],
 }: {
   records: ProductionRecord[];
+  initialDispatches?: DispatchRecord[];
 }) {
   const [selectedId, setSelectedId] = useState(records[0]?.id ?? "");
+  const [dispatches, setDispatches] = useState(initialDispatches);
   const selected = records.find((record) => record.id === selectedId);
+  const dispatchSummary = getDispatchSummary(records, dispatches);
   return (
     <section className="space-y-5" aria-labelledby="production-heading">
       <div>
@@ -27,6 +38,21 @@ export function ProductionWorkspace({
           One record represents one fixture type or batch, not one physical
           unit.
         </p>
+      </div>
+      <div className="panel grid grid-cols-2 overflow-hidden sm:grid-cols-4 lg:grid-cols-7">
+        <Metric label="Required" value={dispatchSummary.totalRequiredQty} />
+        <Metric label="Produced" value={dispatchSummary.totalProducedQty} />
+        <Metric label="QC Passed" value={dispatchSummary.totalQCPassedQty} />
+        <Metric label="Packed" value={dispatchSummary.totalPackedQty} />
+        <Metric label="Dispatched" value={dispatchSummary.totalDispatchedQty} />
+        <Metric
+          label="Pending Dispatch"
+          value={dispatchSummary.pendingDispatchQty}
+        />
+        <Metric
+          label="Dispatch Status"
+          value={dispatchSummary.dispatchStatus}
+        />
       </div>
       <div className="panel overflow-x-auto">
         <table className="w-full min-w-[950px] text-left text-sm">
@@ -89,12 +115,28 @@ export function ProductionWorkspace({
           </p>
         )}
       </div>
-      {selected && <ProductionDetail record={selected} />}
+      {selected && (
+        <ProductionDetail
+          record={selected}
+          dispatchedQty={getFixtureDispatchedQty(selected.id, dispatches)}
+        />
+      )}
+      <DispatchSection
+        records={records}
+        dispatches={dispatches}
+        onChange={setDispatches}
+      />
     </section>
   );
 }
 
-function ProductionDetail({ record }: { record: ProductionRecord }) {
+function ProductionDetail({
+  record,
+  dispatchedQty,
+}: {
+  record: ProductionRecord;
+  dispatchedQty: number;
+}) {
   const progress = getProductionProgress(record);
   const health = getProductionHealth(record);
   const qcStatus = deriveQCStatus(record.qc);
@@ -118,6 +160,10 @@ function ProductionDetail({ record }: { record: ProductionRecord }) {
             value={`${record.packedQty} (${progress.packedPendingQty} pending)`}
           />
           <Fact label="Health" value={health.label} />
+          <Fact
+            label="Dispatched"
+            value={`${dispatchedQty} / ${record.requiredQty}`}
+          />
         </dl>
         {health.health === "Overdue" && (
           <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm font-semibold text-red-800">
@@ -209,6 +255,365 @@ function ProductionDetail({ record }: { record: ProductionRecord }) {
       </Detail>
     </section>
   );
+}
+
+function DispatchSection({
+  records,
+  dispatches,
+  onChange,
+}: {
+  records: ProductionRecord[];
+  dispatches: DispatchRecord[];
+  onChange: (dispatches: DispatchRecord[]) => void;
+}) {
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewAll, setViewAll] = useState(false);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [error, setError] = useState("");
+  const summary = getDispatchSummary(records, dispatches);
+  const recent = [...dispatches].sort((a, b) =>
+    b.dispatchDate.localeCompare(a.dispatchDate),
+  );
+  const visible = viewAll ? recent : recent.slice(0, 3);
+  const editing = dispatches.find((dispatch) => dispatch.id === editingId);
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    const items = records.flatMap((record) => {
+      const quantity = Number(data.get(`fixture-${record.id}`) || 0);
+      return quantity > 0 ? [{ fixtureId: record.id, quantity }] : [];
+    });
+    const otherDispatches = dispatches.filter(
+      (dispatch) => dispatch.id !== editingId,
+    );
+    const validation = validateDispatchItems(items, records, otherDispatches);
+    if (!validation.valid) {
+      setError(validation.message);
+      return;
+    }
+    const dispatch: DispatchRecord = {
+      id: editing?.id ?? `DSP-${Date.now()}`,
+      jobCode: records[0]?.jobCode ?? "",
+      dispatchDate: String(data.get("dispatchDate")),
+      destination: String(data.get("destination")),
+      items,
+      vehicleOrTransporter: String(data.get("vehicleOrTransporter")),
+      driverOrContact: String(data.get("driverOrContact")),
+      dispatchDocumentLink: String(data.get("dispatchDocumentLink")),
+      notes: String(data.get("notes")),
+      status: data.get("status") as DispatchRecord["status"],
+      cancellationReason: "",
+      cancellationDate: "",
+    };
+    onChange(
+      editing
+        ? dispatches.map((item) => (item.id === editing.id ? dispatch : item))
+        : [...dispatches, dispatch],
+    );
+    setShowForm(false);
+    setEditingId(null);
+    setError("");
+  }
+
+  function cancelDispatch(event: FormEvent<HTMLFormElement>, id: string) {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    onChange(
+      dispatches.map((dispatch) =>
+        dispatch.id === id
+          ? {
+              ...dispatch,
+              status: "Cancelled",
+              cancellationReason: String(data.get("cancellationReason")),
+              cancellationDate: browserDate(),
+            }
+          : dispatch,
+      ),
+    );
+    setCancellingId(null);
+  }
+
+  return (
+    <section className="panel p-5" aria-labelledby="dispatch-heading">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
+        <div>
+          <p className="eyebrow">Dispatch</p>
+          <h3 id="dispatch-heading" className="mt-1 text-lg font-bold">
+            {summary.dispatchStatus}
+          </h3>
+          <p className="mt-1 text-sm text-slate-600">
+            {summary.totalDispatchedQty} dispatched ·{" "}
+            {summary.pendingDispatchQty} pending
+          </p>
+        </div>
+        <button
+          className="button button-primary"
+          type="button"
+          onClick={() => {
+            setEditingId(null);
+            setShowForm(true);
+          }}
+        >
+          Create Dispatch
+        </button>
+      </div>
+      {showForm && (
+        <DispatchForm
+          records={records}
+          initial={editing}
+          error={error}
+          onSubmit={save}
+          onCancel={() => {
+            setShowForm(false);
+            setEditingId(null);
+            setError("");
+          }}
+        />
+      )}
+      <div className="mt-5 flex items-center justify-between">
+        <h4 className="font-bold">Recent Dispatches</h4>
+        {recent.length > 3 && (
+          <button
+            className="text-sm font-bold text-blue-800"
+            type="button"
+            onClick={() => setViewAll((value) => !value)}
+          >
+            {viewAll ? "Show Latest 3" : "View All"}
+          </button>
+        )}
+      </div>
+      <div className="mt-3 divide-y rounded-xl border">
+        {visible.map((dispatch) => (
+          <article
+            key={dispatch.id}
+            className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-start"
+          >
+            <div>
+              <p className="font-bold">{dispatch.destination}</p>
+              <p className="mt-1 text-sm text-slate-600">
+                {formatTaskDate(dispatch.dispatchDate)} ·{" "}
+                {dispatch.items.reduce((sum, item) => sum + item.quantity, 0)}{" "}
+                qty · {dispatch.status}
+              </p>
+              {dispatch.status === "Cancelled" && (
+                <p className="mt-1 text-xs text-red-700">
+                  Cancelled {formatTaskDate(dispatch.cancellationDate)} ·{" "}
+                  {dispatch.cancellationReason}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col items-start gap-2">
+              {dispatch.dispatchDocumentLink && (
+                <ExternalLink href={dispatch.dispatchDocumentLink}>
+                  Open Dispatch Document ↗
+                </ExternalLink>
+              )}
+              {dispatch.status === "Draft" && (
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    className="text-sm font-bold text-blue-800"
+                    onClick={() => {
+                      setEditingId(dispatch.id);
+                      setShowForm(true);
+                    }}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    className="text-sm font-bold text-red-700"
+                    onClick={() =>
+                      onChange(
+                        dispatches.filter((item) => item.id !== dispatch.id),
+                      )
+                    }
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+              {dispatch.status === "Dispatched" && (
+                <button
+                  type="button"
+                  className="text-sm font-bold text-red-700"
+                  onClick={() => setCancellingId(dispatch.id)}
+                >
+                  Cancel Dispatch
+                </button>
+              )}
+              {cancellingId === dispatch.id && (
+                <form
+                  className="flex gap-2"
+                  onSubmit={(event) => cancelDispatch(event, dispatch.id)}
+                >
+                  <input
+                    className="control min-h-9"
+                    name="cancellationReason"
+                    placeholder="Cancellation reason"
+                    required
+                  />
+                  <button className="button button-secondary" type="submit">
+                    Confirm
+                  </button>
+                </form>
+              )}
+            </div>
+          </article>
+        ))}
+        {visible.length === 0 && (
+          <p className="p-4 text-sm text-slate-500">No dispatch records.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function DispatchForm({
+  records,
+  initial,
+  error,
+  onSubmit,
+  onCancel,
+}: {
+  records: ProductionRecord[];
+  initial?: DispatchRecord;
+  error: string;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <form
+      className="mt-4 grid gap-3 rounded-xl border border-blue-100 bg-blue-50/40 p-4 sm:grid-cols-2"
+      onSubmit={onSubmit}
+    >
+      <Input
+        name="dispatchDate"
+        label="Dispatch Date"
+        type="date"
+        defaultValue={initial?.dispatchDate}
+        required
+      />
+      <Input
+        name="destination"
+        label="Destination"
+        defaultValue={initial?.destination}
+        required
+      />
+      {records.map((record) => (
+        <Input
+          key={record.id}
+          name={`fixture-${record.id}`}
+          label={`${record.fixtureName} quantity`}
+          type="number"
+          min="0"
+          defaultValue={String(
+            initial?.items.find((item) => item.fixtureId === record.id)
+              ?.quantity ?? 0,
+          )}
+        />
+      ))}
+      <Input
+        name="vehicleOrTransporter"
+        label="Vehicle / Transporter (optional)"
+        defaultValue={initial?.vehicleOrTransporter}
+      />
+      <Input
+        name="driverOrContact"
+        label="Driver / Contact (optional)"
+        defaultValue={initial?.driverOrContact}
+      />
+      <Input
+        name="dispatchDocumentLink"
+        label="Dispatch Document Link (optional)"
+        type="url"
+        defaultValue={initial?.dispatchDocumentLink}
+      />
+      <label className="field">
+        <span>Status</span>
+        <select
+          className="control"
+          name="status"
+          defaultValue={initial?.status}
+        >
+          {dispatchStatuses
+            .filter((status) => status !== "Cancelled")
+            .map((status) => (
+              <option key={status}>{status}</option>
+            ))}
+        </select>
+      </label>
+      <Input name="notes" label="Notes" defaultValue={initial?.notes} />
+      {error && (
+        <p
+          role="alert"
+          className="text-sm font-semibold text-red-700 sm:col-span-2"
+        >
+          {error}
+        </p>
+      )}
+      <div className="flex gap-2 sm:col-span-2">
+        <button className="button button-primary" type="submit">
+          Save Dispatch
+        </button>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onCancel}
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function Input({
+  name,
+  label,
+  type = "text",
+  min,
+  defaultValue,
+  required = false,
+}: {
+  name: string;
+  label: string;
+  type?: string;
+  min?: string;
+  defaultValue?: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <input
+        className="control"
+        name={name}
+        type={type}
+        min={min}
+        defaultValue={defaultValue}
+        required={required}
+      />
+    </label>
+  );
+}
+function Metric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="border-b border-r p-3">
+      <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
+      <p className="mt-1 text-sm font-bold">{value}</p>
+    </div>
+  );
+}
+function browserDate() {
+  const date = new Date();
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 function Detail({
   title,

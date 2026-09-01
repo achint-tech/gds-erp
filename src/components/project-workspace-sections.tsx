@@ -10,8 +10,12 @@ import type { CostingSummary, DesignTask } from "@/lib/prototype-data";
 import type { PurchaseRequest } from "@/lib/purchase-data";
 import { getPurchaseHealth } from "@/lib/purchase-utils";
 import { getTaskHealth } from "@/lib/task-timing";
-import type { ProductionRecord } from "@/lib/production-data";
-import { deriveQCStatus, getProductionHealth } from "@/lib/production-utils";
+import type { DispatchRecord, ProductionRecord } from "@/lib/production-data";
+import {
+  deriveQCStatus,
+  getDispatchSummary,
+  getProductionHealth,
+} from "@/lib/production-utils";
 
 type SectionName =
   "overview" | "costing" | "design" | "purchase" | "production";
@@ -26,6 +30,7 @@ export function ProjectWorkspaceSections({
   designTasks = [],
   purchaseRequests = [],
   productionRecords = [],
+  dispatchRecords = [],
   initialSection,
 }: {
   overview: ReactNode;
@@ -37,6 +42,7 @@ export function ProjectWorkspaceSections({
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
   productionRecords?: ProductionRecord[];
+  dispatchRecords?: DispatchRecord[];
   initialSection?: string;
 }) {
   const validInitialSection: SectionName =
@@ -138,6 +144,7 @@ export function ProjectWorkspaceSections({
           />
           <ProductionSummary
             records={productionRecords}
+            dispatches={dispatchRecords}
             onView={() => setActiveSection("production")}
           />
         </div>
@@ -164,9 +171,11 @@ export function ProjectWorkspaceSections({
 
 function ProductionSummary({
   records,
+  dispatches,
   onView,
 }: {
   records: ProductionRecord[];
+  dispatches: DispatchRecord[];
   onView: () => void;
 }) {
   const required = records.reduce((sum, record) => sum + record.requiredQty, 0);
@@ -180,6 +189,7 @@ function ProductionSummary({
   const rework = records.filter(
     (record) => deriveQCStatus(record.qc) === "Rework Required",
   );
+  const dispatch = getDispatchSummary(records, dispatches);
   return (
     <section
       className="panel mt-5 p-5"
@@ -194,6 +204,10 @@ function ProductionSummary({
           <p className="mt-2 text-sm text-slate-600">
             {completed} / {required} Completed · {overdue.length} Overdue ·{" "}
             {rework.length} QC/Rework Warnings
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Dispatch: {dispatch.dispatchStatus} · {dispatch.totalDispatchedQty}{" "}
+            / {dispatch.totalRequiredQty}
           </p>
           {overdue[0] && (
             <p className="mt-3 text-sm font-semibold text-red-700">

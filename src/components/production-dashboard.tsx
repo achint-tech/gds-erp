@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { activeProjects } from "@/lib/prototype-data";
-import type { ProductionRecord } from "@/lib/production-data";
+import type { DispatchRecord, ProductionRecord } from "@/lib/production-data";
 import {
   deriveQCStatus,
+  getDispatchSummary,
   getProductionHealth,
   getProductionProgress,
 } from "@/lib/production-utils";
@@ -10,8 +11,10 @@ import { formatTaskDate } from "@/lib/task-timing";
 
 export function ProductionDashboard({
   records,
+  dispatches,
 }: {
   records: ProductionRecord[];
+  dispatches: DispatchRecord[];
 }) {
   const projects = [...new Set(records.map((record) => record.jobCode))].map(
     (jobCode) => ({
@@ -82,6 +85,10 @@ export function ProductionDashboard({
               const rework = projectRecords.filter(
                 (record) => deriveQCStatus(record.qc) === "Rework Required",
               ).length;
+              const dispatch = getDispatchSummary(
+                projectRecords,
+                dispatches.filter((record) => record.jobCode === jobCode),
+              );
               return (
                 <tr key={jobCode} className="border-b border-slate-100">
                   <td className="px-4 py-4">
@@ -102,7 +109,9 @@ export function ProductionDashboard({
                   <td
                     className={`px-4 py-4 font-bold ${health === "Overdue" ? "text-red-700" : ""}`}
                   >
-                    {health}
+                    {dispatch.dispatchStatus === "Not Ready"
+                      ? health
+                      : dispatch.dispatchStatus}
                   </td>
                   <td className="px-4 py-4">
                     {rework ? `${rework} Rework` : "No rework"}
