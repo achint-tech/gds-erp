@@ -4,6 +4,7 @@ import { CostingQuotationWorkspace } from "@/components/costing-quotation-worksp
 import { DesignWorkspace } from "@/components/design-workspace";
 import { ProjectWorkspaceSections } from "@/components/project-workspace-sections";
 import { PurchaseWorkspace } from "@/components/purchase-workspace";
+import { ProductionWorkspace } from "@/components/production-workspace";
 import {
   activeProjects,
   archivedProjects,
@@ -13,6 +14,7 @@ import {
 } from "@/lib/prototype-data";
 import { formatTaskDate } from "@/lib/task-timing";
 import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
+import { productionRecords } from "@/lib/production-data";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -37,10 +39,13 @@ export function generateStaticParams() {
 
 export default async function ProjectOverviewPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ jobCode: string }>;
+  searchParams: Promise<{ section?: string }>;
 }) {
   const { jobCode } = await params;
+  const { section } = await searchParams;
   const project = [...activeProjects, ...archivedProjects].find(
     (item) => item.jobCode === jobCode,
   );
@@ -53,6 +58,9 @@ export default async function ProjectOverviewPage({
   );
   const projectUrgentPurchases = urgentPurchases.filter(
     (purchase) => purchase.projectJobCode === project.jobCode,
+  );
+  const projectProductionRecords = productionRecords.filter(
+    (record) => record.jobCode === project.jobCode,
   );
 
   const overview = (
@@ -159,6 +167,7 @@ export default async function ProjectOverviewPage({
       initialUrgent={projectUrgentPurchases}
     />
   );
+  const production = <ProductionWorkspace records={projectProductionRecords} />;
 
   return (
     <>
@@ -185,9 +194,12 @@ export default async function ProjectOverviewPage({
         costing={costing}
         design={design}
         purchase={purchase}
+        production={production}
         costingSummary={costingData?.summary}
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
+        productionRecords={projectProductionRecords}
+        initialSection={section}
       />
     </>
   );

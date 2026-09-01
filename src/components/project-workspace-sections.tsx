@@ -10,27 +10,39 @@ import type { CostingSummary, DesignTask } from "@/lib/prototype-data";
 import type { PurchaseRequest } from "@/lib/purchase-data";
 import { getPurchaseHealth } from "@/lib/purchase-utils";
 import { getTaskHealth } from "@/lib/task-timing";
+import type { ProductionRecord } from "@/lib/production-data";
+import { deriveQCStatus, getProductionHealth } from "@/lib/production-utils";
 
-type SectionName = "overview" | "costing" | "design" | "purchase";
+type SectionName =
+  "overview" | "costing" | "design" | "purchase" | "production";
 
 export function ProjectWorkspaceSections({
   overview,
   costing,
   design,
   purchase,
+  production,
   costingSummary,
   designTasks = [],
   purchaseRequests = [],
+  productionRecords = [],
+  initialSection,
 }: {
   overview: ReactNode;
   costing: ReactNode;
   design: ReactNode;
   purchase: ReactNode;
+  production: ReactNode;
   costingSummary?: CostingSummary;
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
+  productionRecords?: ProductionRecord[];
+  initialSection?: string;
 }) {
-  const [activeSection, setActiveSection] = useState<SectionName>("overview");
+  const validInitialSection: SectionName =
+    initialSection === "production" ? "production" : "overview";
+  const [activeSection, setActiveSection] =
+    useState<SectionName>(validInitialSection);
   return (
     <>
       <div
@@ -61,6 +73,12 @@ export function ProjectWorkspaceSections({
           onClick={() => setActiveSection("purchase")}
         >
           Purchase
+        </TabButton>
+        <TabButton
+          active={activeSection === "production"}
+          onClick={() => setActiveSection("production")}
+        >
+          Production
         </TabButton>
       </div>
       {activeSection === "overview" ? (
@@ -118,6 +136,10 @@ export function ProjectWorkspaceSections({
             requests={purchaseRequests}
             onView={() => setActiveSection("purchase")}
           />
+          <ProductionSummary
+            records={productionRecords}
+            onView={() => setActiveSection("production")}
+          />
         </div>
       ) : activeSection === "costing" ? (
         <div role="tabpanel" aria-label="Costing & Quotation">
@@ -127,12 +149,73 @@ export function ProjectWorkspaceSections({
         <div role="tabpanel" aria-label="Design">
           {design}
         </div>
-      ) : (
+      ) : activeSection === "purchase" ? (
         <div role="tabpanel" aria-label="Purchase">
           {purchase}
         </div>
+      ) : (
+        <div role="tabpanel" aria-label="Production">
+          {production}
+        </div>
       )}
     </>
+  );
+}
+
+function ProductionSummary({
+  records,
+  onView,
+}: {
+  records: ProductionRecord[];
+  onView: () => void;
+}) {
+  const required = records.reduce((sum, record) => sum + record.requiredQty, 0);
+  const completed = records.reduce(
+    (sum, record) => sum + record.completedQty,
+    0,
+  );
+  const overdue = records.filter(
+    (record) => getProductionHealth(record).health === "Overdue",
+  );
+  const rework = records.filter(
+    (record) => deriveQCStatus(record.qc) === "Rework Required",
+  );
+  return (
+    <section
+      className="panel mt-5 p-5"
+      aria-labelledby="production-summary-heading"
+    >
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Production</p>
+          <h2 id="production-summary-heading" className="mt-1 font-bold">
+            {records.length} Fixture Types
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {completed} / {required} Completed · {overdue.length} Overdue ·{" "}
+            {rework.length} QC/Rework Warnings
+          </p>
+          {overdue[0] && (
+            <p className="mt-3 text-sm font-semibold text-red-700">
+              Critical: {overdue[0].fixtureName} —{" "}
+              {getProductionHealth(overdue[0]).label}
+            </p>
+          )}
+          {!overdue[0] && rework[0] && (
+            <p className="mt-3 text-sm font-semibold text-amber-800">
+              QC: {rework[0].fixtureName} — Rework Required
+            </p>
+          )}
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onView}
+        >
+          View Production →
+        </button>
+      </div>
+    </section>
   );
 }
 
