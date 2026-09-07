@@ -16,9 +16,15 @@ import {
   getDispatchSummary,
   getProductionHealth,
 } from "@/lib/production-utils";
+import type { SiteExecution } from "@/lib/site-execution-data";
+import {
+  getInstallationSummary,
+  getSiteDeadlineHealth,
+  requiresRectification,
+} from "@/lib/site-execution-utils";
 
 type SectionName =
-  "overview" | "costing" | "design" | "purchase" | "production";
+  "overview" | "costing" | "design" | "purchase" | "production" | "site";
 
 export function ProjectWorkspaceSections({
   overview,
@@ -26,11 +32,13 @@ export function ProjectWorkspaceSections({
   design,
   purchase,
   production,
+  site,
   costingSummary,
   designTasks = [],
   purchaseRequests = [],
   productionRecords = [],
   dispatchRecords = [],
+  siteExecution,
   initialSection,
 }: {
   overview: ReactNode;
@@ -38,15 +46,19 @@ export function ProjectWorkspaceSections({
   design: ReactNode;
   purchase: ReactNode;
   production: ReactNode;
+  site: ReactNode;
   costingSummary?: CostingSummary;
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
   productionRecords?: ProductionRecord[];
   dispatchRecords?: DispatchRecord[];
+  siteExecution?: SiteExecution;
   initialSection?: string;
 }) {
   const validInitialSection: SectionName =
-    initialSection === "production" ? "production" : "overview";
+    initialSection === "production" || initialSection === "site"
+      ? initialSection
+      : "overview";
   const [activeSection, setActiveSection] =
     useState<SectionName>(validInitialSection);
   return (
@@ -85,6 +97,12 @@ export function ProjectWorkspaceSections({
           onClick={() => setActiveSection("production")}
         >
           Production
+        </TabButton>
+        <TabButton
+          active={activeSection === "site"}
+          onClick={() => setActiveSection("site")}
+        >
+          Site Execution
         </TabButton>
       </div>
       {activeSection === "overview" ? (
@@ -147,6 +165,12 @@ export function ProjectWorkspaceSections({
             dispatches={dispatchRecords}
             onView={() => setActiveSection("production")}
           />
+          <SiteSummary
+            site={siteExecution}
+            records={productionRecords}
+            dispatches={dispatchRecords}
+            onView={() => setActiveSection("site")}
+          />
         </div>
       ) : activeSection === "costing" ? (
         <div role="tabpanel" aria-label="Costing & Quotation">
@@ -160,13 +184,80 @@ export function ProjectWorkspaceSections({
         <div role="tabpanel" aria-label="Purchase">
           {purchase}
         </div>
-      ) : (
+      ) : activeSection === "production" ? (
         <div role="tabpanel" aria-label="Production">
           {production}
+        </div>
+      ) : (
+        <div role="tabpanel" aria-label="Site Execution">
+          {site}
         </div>
       )}
     </>
   );
+}
+
+function SiteSummary({
+  site,
+  records,
+  dispatches,
+  onView,
+}: {
+  site?: SiteExecution;
+  records: ProductionRecord[];
+  dispatches: DispatchRecord[];
+  onView: () => void;
+}) {
+  if (!site) return null;
+  const deadline = getSiteDeadlineHealth(site);
+  const installation = getInstallationSummary(site, records, dispatches);
+  const rectification = requiresRectification(site);
+  return (
+    <section className="panel mt-5 p-5" aria-labelledby="site-summary-heading">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Site Execution</p>
+          <h2 id="site-summary-heading" className="mt-1 font-bold">
+            {site.siteStatus}
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Target {formatSummaryDate(site.targetSiteCompletionDate)} ·{" "}
+            {deadline.health}
+            {deadline.daysDelayed ? ` by ${deadline.daysDelayed} days` : ""}
+          </p>
+          {records.length > 0 && (
+            <p className="mt-1 text-sm text-slate-600">
+              Installation: {installation.totalInstalled} /{" "}
+              {installation.totalReceived} ·{" "}
+              {installation.installationPercentage}%
+            </p>
+          )}
+          <p
+            className={`mt-1 text-sm ${rectification ? "font-bold text-amber-800" : "text-slate-600"}`}
+          >
+            QC: {site.qc.qcStatus} · Handover: {site.handover.handoverStatus}
+          </p>
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onView}
+        >
+          View Site Execution →
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function formatSummaryDate(value: string) {
+  return value
+    ? new Intl.DateTimeFormat("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      }).format(new Date(`${value}T00:00:00`))
+    : "—";
 }
 
 function ProductionSummary({

@@ -5,6 +5,7 @@ import { DesignWorkspace } from "@/components/design-workspace";
 import { ProjectWorkspaceSections } from "@/components/project-workspace-sections";
 import { PurchaseWorkspace } from "@/components/purchase-workspace";
 import { ProductionWorkspace } from "@/components/production-workspace";
+import { SiteExecutionWorkspace } from "@/components/site-execution-workspace";
 import {
   activeProjects,
   archivedProjects,
@@ -15,6 +16,7 @@ import {
 import { formatTaskDate } from "@/lib/task-timing";
 import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
 import { dispatchRecords, productionRecords } from "@/lib/production-data";
+import { siteExecutionByJobCode } from "@/lib/site-execution-data";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -65,6 +67,7 @@ export default async function ProjectOverviewPage({
   const projectDispatchRecords = dispatchRecords.filter(
     (record) => record.jobCode === project.jobCode,
   );
+  const siteExecution = siteExecutionByJobCode[project.jobCode];
 
   const overview = (
     <>
@@ -176,6 +179,23 @@ export default async function ProjectOverviewPage({
       initialDispatches={projectDispatchRecords}
     />
   );
+  const site = (
+    <SiteExecutionWorkspace
+      context={{
+        jobCode: project.jobCode,
+        projectName: project.projectName,
+        brand: project.brand,
+        projectType: project.projectType,
+        projectManager: project.projectManager,
+        address: project.address,
+        clientContact: `${project.sitePocName} · ${project.sitePocEmail} · ${project.sitePocPhone}`,
+        poReference: purchaseOrder?.poNumber ?? "",
+      }}
+      initialSite={siteExecution}
+      productionRecords={projectProductionRecords}
+      dispatchRecords={projectDispatchRecords}
+    />
+  );
 
   return (
     <>
@@ -203,11 +223,13 @@ export default async function ProjectOverviewPage({
         design={design}
         purchase={purchase}
         production={production}
+        site={site}
         costingSummary={costingData?.summary}
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
         productionRecords={projectProductionRecords}
         dispatchRecords={projectDispatchRecords}
+        siteExecution={siteExecution}
         initialSection={section}
       />
     </>
