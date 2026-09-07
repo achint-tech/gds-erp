@@ -143,6 +143,14 @@ export function ProjectWorkspaceSections({
       {activeSection === "overview" ? (
         <div role="tabpanel" aria-label="Project Overview">
           {overview}
+          <NeedsAttention
+            designTasks={designTasks}
+            purchaseRequests={purchaseRequests}
+            productionRecords={productionRecords}
+            site={siteExecution}
+            bills={bills}
+            payment={projectPayment}
+          />
           <section
             className="panel mt-5 overflow-hidden"
             aria-labelledby="compact-costing-heading"
@@ -239,6 +247,93 @@ export function ProjectWorkspaceSections({
         </div>
       )}
     </>
+  );
+}
+
+function NeedsAttention({
+  designTasks,
+  purchaseRequests,
+  productionRecords,
+  site,
+  bills,
+  payment,
+}: {
+  designTasks: DesignTask[];
+  purchaseRequests: PurchaseRequest[];
+  productionRecords: ProductionRecord[];
+  site?: SiteExecution;
+  bills: BillRecord[];
+  payment: ProjectPayment;
+}) {
+  const items: string[] = [];
+  const overdueDesign = designTasks.filter(
+    (task) =>
+      isActiveDesignTask(task) &&
+      getTaskHealth(task.status, task.dueDate).health === "Overdue",
+  ).length;
+  const overduePurchase = purchaseRequests.filter((request) =>
+    getPurchaseHealth(request).health.includes("Overdue"),
+  ).length;
+  const awaitingApproval = purchaseRequests.filter(
+    (request) => request.status === "Awaiting Approval",
+  ).length;
+  const overdueProduction = productionRecords.filter(
+    (record) => getProductionHealth(record).health === "Overdue",
+  ).length;
+  const productionRework = productionRecords.filter(
+    (record) => deriveQCStatus(record.qc) === "Rework Required",
+  ).length;
+  if (overdueDesign) items.push(`${overdueDesign} overdue Design task(s)`);
+  if (overduePurchase)
+    items.push(`${overduePurchase} overdue Purchase request(s)`);
+  if (awaitingApproval)
+    items.push(`${awaitingApproval} Purchase request(s) awaiting approval`);
+  if (overdueProduction)
+    items.push(`${overdueProduction} overdue Production fixture(s)`);
+  if (productionRework)
+    items.push(`${productionRework} Production QC/rework warning(s)`);
+  if (site) {
+    const siteHealth = getSiteDeadlineHealth(site);
+    if (site.siteStatus === "Blocked") items.push("Site Execution is blocked");
+    if (siteHealth.health === "Overdue")
+      items.push(`Site is overdue by ${siteHealth.daysDelayed} day(s)`);
+    if (requiresRectification(site)) items.push("Site rectification required");
+    if (
+      site.handover.handoverStatus === "Handed Over" &&
+      site.measurementStatus === "Pending"
+    )
+      items.push("Measurement pending after handover");
+    const billingReadiness = getBillingReadiness(site);
+    if (!billingReadiness.ready)
+      items.push(`Billing not ready: ${billingReadiness.reason}`);
+  }
+  const paymentSummary = getPaymentSummary(bills, payment);
+  if (paymentSummary.paymentStatus !== "Received")
+    items.push(`Payment ${paymentSummary.paymentStatus.toLowerCase()}`);
+
+  return (
+    <section
+      className="panel mt-5 p-5"
+      aria-labelledby="needs-attention-heading"
+    >
+      <p className="eyebrow">Management Summary</p>
+      <h2 id="needs-attention-heading" className="mt-1 font-bold">
+        Needs Attention
+      </h2>
+      {items.length > 0 ? (
+        <ul className="mt-3 grid gap-2 text-sm text-slate-700 sm:grid-cols-2">
+          {items.map((item) => (
+            <li key={item} className="rounded-lg bg-amber-50 px-3 py-2">
+              {item}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-2 text-sm text-slate-600">
+          No current derived warnings.
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -364,17 +459,6 @@ function ProductionSummary({
             Dispatch: {dispatch.dispatchStatus} · {dispatch.totalDispatchedQty}{" "}
             / {dispatch.totalRequiredQty}
           </p>
-          {overdue[0] && (
-            <p className="mt-3 text-sm font-semibold text-red-700">
-              Critical: {overdue[0].fixtureName} —{" "}
-              {getProductionHealth(overdue[0]).label}
-            </p>
-          )}
-          {!overdue[0] && rework[0] && (
-            <p className="mt-3 text-sm font-semibold text-amber-800">
-              QC: {rework[0].fixtureName} — Rework Required
-            </p>
-          )}
         </div>
         <button
           className="button button-secondary"
@@ -425,12 +509,6 @@ function PurchaseSummary({
             {sourcing} Sourcing · {approval} Awaiting Approval · {delivery}{" "}
             Awaiting Delivery · {overdue.length} Overdue · {received} Received
           </p>
-          {overdue[0] && (
-            <p className="mt-3 text-sm font-semibold text-red-700">
-              Critical: {overdue[0].requestTitle} —{" "}
-              {getPurchaseHealth(overdue[0]).label}
-            </p>
-          )}
         </div>
         <button
           className="button button-secondary"
@@ -477,18 +555,6 @@ function DesignSummary({
             {overdueTasks.length} Overdue · {waiting} Waiting Client ·{" "}
             {approvedStreams} Approved Streams
           </p>
-          {overdueTasks.length > 0 && (
-            <p className="mt-3 text-sm font-semibold text-red-700">
-              Critical: {overdueTasks[0].taskName} {overdueTasks[0].version} —{" "}
-              {
-                getTaskHealth(overdueTasks[0].status, overdueTasks[0].dueDate)
-                  .label
-              }
-              {overdueTasks.length > 1
-                ? ` · ${overdueTasks.length - 1} more overdue`
-                : ""}
-            </p>
-          )}
         </div>
         <button
           className="button button-secondary"

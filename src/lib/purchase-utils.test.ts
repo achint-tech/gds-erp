@@ -12,17 +12,27 @@ describe("purchase timing and history rules", () => {
     ).toBe(true);
   });
   it("reports delivery overdue after a supplier PO", () => {
-    expect(getPurchaseHealth(purchaseRequests[0], today).health).toBe(
-      "Delivery Overdue",
-    );
+    expect(
+      getPurchaseHealth(
+        { ...purchaseRequests[0], status: "Awaiting Delivery" },
+        today,
+      ).health,
+    ).toBe("Delivery Overdue");
   });
   it("reports approaching requirements", () => {
-    expect(getPurchaseHealth(purchaseRequests[3], today).health).toBe(
-      "Required Soon",
-    );
+    expect(
+      getPurchaseHealth(
+        {
+          ...purchaseRequests[3],
+          status: "Sourcing",
+          requiredByDate: "2026-08-29",
+        },
+        today,
+      ).health,
+    ).toBe("Required Soon");
   });
   it("protects requests after PO issue", () => {
     expect(canEditPurchaseRequest(purchaseRequests[0])).toBe(false);
-    expect(canEditPurchaseRequest(purchaseRequests[3])).toBe(true);
+    expect(canEditPurchaseRequest(purchaseRequests[3])).toBe(false);
   });
 });

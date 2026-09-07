@@ -29,13 +29,21 @@ describe("production calculations", () => {
   it("reports due soon and on track", () => {
     expect(
       getProductionHealth(
-        { ...productionRecords[0], internalDeadline: "2026-09-03" },
+        {
+          ...productionRecords[0],
+          completedQty: 29,
+          internalDeadline: "2026-09-03",
+        },
         new Date(2026, 8, 1),
       ).health,
     ).toBe("Due Soon");
     expect(
       getProductionHealth(
-        { ...productionRecords[0], internalDeadline: "2026-09-10" },
+        {
+          ...productionRecords[0],
+          completedQty: 29,
+          internalDeadline: "2026-09-10",
+        },
         new Date(2026, 8, 1),
       ).health,
     ).toBe("On Track");

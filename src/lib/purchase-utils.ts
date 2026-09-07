@@ -53,5 +53,6 @@ export function canEditPurchaseRequest(request: PurchaseRequest) {
     "Received",
     "Replacement Pending",
     "Closed",
+    "Cancelled",
   ].includes(request.status);
 }

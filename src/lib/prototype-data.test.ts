@@ -29,7 +29,7 @@ describe("approved design and PO prototype data", () => {
     expect(approvedProjectStatuses).toContain("Payment");
   });
 
-  it("provides the compact PO and varied Design demonstrations", () => {
+  it("provides compact PO and lifecycle-consistent Design demonstrations", () => {
     expect(purchaseOrdersByJobCode.GDS150.poDocumentLink).toMatch(/^https:/);
     expect(
       designTasksByJobCode.GDS149.some(
@@ -39,7 +39,7 @@ describe("approved design and PO prototype data", () => {
       ),
     ).toBe(true);
     expect(
-      designTasksByJobCode.GDS149.some((task) => task.status === "In Progress"),
+      designTasksByJobCode.GDS149.every((task) => task.status === "Closed"),
     ).toBe(true);
     expect(
       designTasksByJobCode.GDS149.some(

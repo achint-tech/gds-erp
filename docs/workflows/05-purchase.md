@@ -26,6 +26,7 @@ Purchase Requirement
 - A request may contain multiple manually entered supplier quotations.
 - Rate comparison is optional and remains a Google Sheet or Drive link.
 - Purchase Recommendation is not part of the approved V1 workflow. After sourcing and optional rate comparison, a request proceeds directly to Management Approval.
+- Supplier quotation statuses do not select or recommend a final supplier.
 - The supplier recorded on the Supplier PO represents the final approved supplier.
 - Final approval belongs to Management.
 - Monetary approval thresholds are not defined.
