@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BillingWorkspace } from "@/components/billing-workspace";
 import { CostingQuotationWorkspace } from "@/components/costing-quotation-workspace";
 import { DesignWorkspace } from "@/components/design-workspace";
 import { ProjectWorkspaceSections } from "@/components/project-workspace-sections";
@@ -16,6 +17,7 @@ import {
 import { formatTaskDate } from "@/lib/task-timing";
 import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
 import { dispatchRecords, productionRecords } from "@/lib/production-data";
+import { billsByJobCode } from "@/lib/billing-data";
 import { siteExecutionByJobCode } from "@/lib/site-execution-data";
 
 const fields = [
@@ -68,6 +70,7 @@ export default async function ProjectOverviewPage({
     (record) => record.jobCode === project.jobCode,
   );
   const siteExecution = siteExecutionByJobCode[project.jobCode];
+  const projectBills = billsByJobCode[project.jobCode] ?? [];
 
   const overview = (
     <>
@@ -196,6 +199,12 @@ export default async function ProjectOverviewPage({
       dispatchRecords={projectDispatchRecords}
     />
   );
+  const billing = (
+    <BillingWorkspace
+      initialBills={projectBills}
+      siteExecution={siteExecution}
+    />
+  );
 
   return (
     <>
@@ -224,12 +233,14 @@ export default async function ProjectOverviewPage({
         purchase={purchase}
         production={production}
         site={site}
+        billing={billing}
         costingSummary={costingData?.summary}
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
         productionRecords={projectProductionRecords}
         dispatchRecords={projectDispatchRecords}
         siteExecution={siteExecution}
+        bills={projectBills}
         initialSection={section}
       />
     </>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import type { BillRecord } from "@/lib/billing-data";
+import { formatBillAmount, getBillingSummary } from "@/lib/billing-utils";
 import { displayValue } from "@/lib/costing-utils";
 import {
   getLatestDesignVersions,
@@ -25,7 +27,13 @@ import {
 } from "@/lib/site-execution-utils";
 
 type SectionName =
-  "overview" | "costing" | "design" | "purchase" | "production" | "site";
+  | "overview"
+  | "costing"
+  | "design"
+  | "purchase"
+  | "production"
+  | "site"
+  | "billing";
 
 export function ProjectWorkspaceSections({
   overview,
@@ -34,12 +42,14 @@ export function ProjectWorkspaceSections({
   purchase,
   production,
   site,
+  billing,
   costingSummary,
   designTasks = [],
   purchaseRequests = [],
   productionRecords = [],
   dispatchRecords = [],
   siteExecution,
+  bills = [],
   initialSection,
 }: {
   overview: ReactNode;
@@ -48,16 +58,20 @@ export function ProjectWorkspaceSections({
   purchase: ReactNode;
   production: ReactNode;
   site: ReactNode;
+  billing: ReactNode;
   costingSummary?: CostingSummary;
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
   productionRecords?: ProductionRecord[];
   dispatchRecords?: DispatchRecord[];
   siteExecution?: SiteExecution;
+  bills?: BillRecord[];
   initialSection?: string;
 }) {
   const validInitialSection: SectionName =
-    initialSection === "production" || initialSection === "site"
+    initialSection === "production" ||
+    initialSection === "site" ||
+    initialSection === "billing"
       ? initialSection
       : "overview";
   const [activeSection, setActiveSection] =
@@ -104,6 +118,12 @@ export function ProjectWorkspaceSections({
           onClick={() => setActiveSection("site")}
         >
           Site Execution
+        </TabButton>
+        <TabButton
+          active={activeSection === "billing"}
+          onClick={() => setActiveSection("billing")}
+        >
+          Billing
         </TabButton>
       </div>
       {activeSection === "overview" ? (
@@ -170,6 +190,7 @@ export function ProjectWorkspaceSections({
             site={siteExecution}
             records={productionRecords}
             dispatches={dispatchRecords}
+            bills={bills}
             onView={() => setActiveSection("site")}
           />
         </div>
@@ -189,9 +210,13 @@ export function ProjectWorkspaceSections({
         <div role="tabpanel" aria-label="Production">
           {production}
         </div>
-      ) : (
+      ) : activeSection === "site" ? (
         <div role="tabpanel" aria-label="Site Execution">
           {site}
+        </div>
+      ) : (
+        <div role="tabpanel" aria-label="Billing">
+          {billing}
         </div>
       )}
     </>
@@ -202,11 +227,13 @@ function SiteSummary({
   site,
   records,
   dispatches,
+  bills,
   onView,
 }: {
   site?: SiteExecution;
   records: ProductionRecord[];
   dispatches: DispatchRecord[];
+  bills: BillRecord[];
   onView: () => void;
 }) {
   if (!site) return null;
@@ -214,6 +241,7 @@ function SiteSummary({
   const installation = getInstallationSummary(site, records, dispatches);
   const rectification = requiresRectification(site);
   const billingReadiness = getBillingReadiness(site);
+  const billingSummary = getBillingSummary(bills);
   return (
     <section className="panel mt-5 p-5" aria-labelledby="site-summary-heading">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -241,6 +269,10 @@ function SiteSummary({
           </p>
           <p className="mt-1 text-sm text-slate-600">
             Measurement: {site.measurementStatus} · {billingReadiness.status}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Total Billed: {formatBillAmount(billingSummary.totalBilled)} ·{" "}
+            {billingSummary.billCount} Bills
           </p>
         </div>
         <button

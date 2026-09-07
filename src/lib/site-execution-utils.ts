@@ -102,8 +102,14 @@ export function isMeasurementComplete(
 }
 
 export function getBillingReadiness(
-  site: Pick<SiteExecution, "handover" | "measurementStatus">,
+  site?: Pick<SiteExecution, "handover" | "measurementStatus">,
 ) {
+  if (!site)
+    return {
+      ready: false as const,
+      status: "Billing Not Ready" as const,
+      reason: "Handover + Measurement Pending",
+    };
   const handoverComplete = isHandoverComplete(site);
   const measurementComplete = isMeasurementComplete(site);
   if (handoverComplete && measurementComplete)
