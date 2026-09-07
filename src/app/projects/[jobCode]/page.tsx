@@ -6,6 +6,7 @@ import { DesignWorkspace } from "@/components/design-workspace";
 import { ProjectWorkspaceSections } from "@/components/project-workspace-sections";
 import { PurchaseWorkspace } from "@/components/purchase-workspace";
 import { ProductionWorkspace } from "@/components/production-workspace";
+import { PaymentWorkspace } from "@/components/payment-workspace";
 import { SiteExecutionWorkspace } from "@/components/site-execution-workspace";
 import {
   activeProjects,
@@ -18,6 +19,7 @@ import { formatTaskDate } from "@/lib/task-timing";
 import { purchaseRequests, urgentPurchases } from "@/lib/purchase-data";
 import { dispatchRecords, productionRecords } from "@/lib/production-data";
 import { billsByJobCode } from "@/lib/billing-data";
+import { paymentsByJobCode } from "@/lib/payment-data";
 import { siteExecutionByJobCode } from "@/lib/site-execution-data";
 
 const fields = [
@@ -71,6 +73,10 @@ export default async function ProjectOverviewPage({
   );
   const siteExecution = siteExecutionByJobCode[project.jobCode];
   const projectBills = billsByJobCode[project.jobCode] ?? [];
+  const projectPayment = paymentsByJobCode[project.jobCode] ?? {
+    paymentReceivedDate: "",
+    amountReceived: 0,
+  };
 
   const overview = (
     <>
@@ -205,6 +211,13 @@ export default async function ProjectOverviewPage({
       siteExecution={siteExecution}
     />
   );
+  const payment = (
+    <PaymentWorkspace
+      initialPayment={projectPayment}
+      bills={projectBills}
+      siteExecution={siteExecution}
+    />
+  );
 
   return (
     <>
@@ -234,6 +247,7 @@ export default async function ProjectOverviewPage({
         production={production}
         site={site}
         billing={billing}
+        payment={payment}
         costingSummary={costingData?.summary}
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
@@ -241,6 +255,7 @@ export default async function ProjectOverviewPage({
         dispatchRecords={projectDispatchRecords}
         siteExecution={siteExecution}
         bills={projectBills}
+        projectPayment={projectPayment}
         initialSection={section}
       />
     </>

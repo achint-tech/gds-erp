@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from "react";
 import type { BillRecord } from "@/lib/billing-data";
 import { formatBillAmount, getBillingSummary } from "@/lib/billing-utils";
+import type { ProjectPayment } from "@/lib/payment-data";
+import { getPaymentSummary } from "@/lib/payment-utils";
 import { displayValue } from "@/lib/costing-utils";
 import {
   getLatestDesignVersions,
@@ -33,7 +35,8 @@ type SectionName =
   | "purchase"
   | "production"
   | "site"
-  | "billing";
+  | "billing"
+  | "payment";
 
 export function ProjectWorkspaceSections({
   overview,
@@ -43,6 +46,7 @@ export function ProjectWorkspaceSections({
   production,
   site,
   billing,
+  payment,
   costingSummary,
   designTasks = [],
   purchaseRequests = [],
@@ -50,6 +54,7 @@ export function ProjectWorkspaceSections({
   dispatchRecords = [],
   siteExecution,
   bills = [],
+  projectPayment = { paymentReceivedDate: "", amountReceived: 0 },
   initialSection,
 }: {
   overview: ReactNode;
@@ -59,6 +64,7 @@ export function ProjectWorkspaceSections({
   production: ReactNode;
   site: ReactNode;
   billing: ReactNode;
+  payment: ReactNode;
   costingSummary?: CostingSummary;
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
@@ -66,12 +72,14 @@ export function ProjectWorkspaceSections({
   dispatchRecords?: DispatchRecord[];
   siteExecution?: SiteExecution;
   bills?: BillRecord[];
+  projectPayment?: ProjectPayment;
   initialSection?: string;
 }) {
   const validInitialSection: SectionName =
     initialSection === "production" ||
     initialSection === "site" ||
-    initialSection === "billing"
+    initialSection === "billing" ||
+    initialSection === "payment"
       ? initialSection
       : "overview";
   const [activeSection, setActiveSection] =
@@ -124,6 +132,12 @@ export function ProjectWorkspaceSections({
           onClick={() => setActiveSection("billing")}
         >
           Billing
+        </TabButton>
+        <TabButton
+          active={activeSection === "payment"}
+          onClick={() => setActiveSection("payment")}
+        >
+          Payment
         </TabButton>
       </div>
       {activeSection === "overview" ? (
@@ -191,6 +205,7 @@ export function ProjectWorkspaceSections({
             records={productionRecords}
             dispatches={dispatchRecords}
             bills={bills}
+            payment={projectPayment}
             onView={() => setActiveSection("site")}
           />
         </div>
@@ -214,9 +229,13 @@ export function ProjectWorkspaceSections({
         <div role="tabpanel" aria-label="Site Execution">
           {site}
         </div>
-      ) : (
+      ) : activeSection === "billing" ? (
         <div role="tabpanel" aria-label="Billing">
           {billing}
+        </div>
+      ) : (
+        <div role="tabpanel" aria-label="Payment">
+          {payment}
         </div>
       )}
     </>
@@ -228,12 +247,14 @@ function SiteSummary({
   records,
   dispatches,
   bills,
+  payment,
   onView,
 }: {
   site?: SiteExecution;
   records: ProductionRecord[];
   dispatches: DispatchRecord[];
   bills: BillRecord[];
+  payment: ProjectPayment;
   onView: () => void;
 }) {
   if (!site) return null;
@@ -242,6 +263,7 @@ function SiteSummary({
   const rectification = requiresRectification(site);
   const billingReadiness = getBillingReadiness(site);
   const billingSummary = getBillingSummary(bills);
+  const paymentSummary = getPaymentSummary(bills, payment);
   return (
     <section className="panel mt-5 p-5" aria-labelledby="site-summary-heading">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -273,6 +295,11 @@ function SiteSummary({
           <p className="mt-1 text-sm text-slate-600">
             Total Billed: {formatBillAmount(billingSummary.totalBilled)} ·{" "}
             {billingSummary.billCount} Bills
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Amount Received: {formatBillAmount(paymentSummary.totalReceived)} ·{" "}
+            Pending: {formatBillAmount(paymentSummary.pendingAmount)} ·{" "}
+            {paymentSummary.paymentStatus}
           </p>
         </div>
         <button
