@@ -2,7 +2,7 @@
 
 ## Flow
 
-Project and PO context → Recce / Site Start → Work Package Execution → Fixture Receipt / Installation when applicable → Site QC → Rectification if required → Handover
+Project and PO context → Recce / Site Start → Work Package Execution → Fixture Receipt / Installation when applicable → Site QC → Rectification if required → Handover → Measurement Done / Not Required → Billing Ready
 
 ## Scope
 
@@ -12,17 +12,19 @@ Project and PO context → Recce / Site Start → Work Package Execution → Fix
 - Fixture dispatched quantities are inherited from Production; site receipt, installation and pending quantities support partial movement.
 - Site QC records a lightweight decision and rectification summary rather than individual snag items.
 - Handover is manually confirmed and visually completes Site Execution.
+- Measurement may be Not Required, Pending or Done. Detailed measurements remain in Google Drive; the ERP stores only status, date, person, Drive link and notes.
 
 ## Derived information
 
 - Deadline health and days delayed come from the target Site completion date.
 - Pending installation and installation percentage come from received and installed quantities.
 - Rectification and handover completion are surfaced automatically from their recorded states.
+- Billing Ready is derived only when Handover is completed and Measurement is Done or Not Required.
 
 ## Boundaries
 
 - Production remains separate, and Dispatch stays inside Production.
 - A Vendor Work Order workflow is future and separate.
 - A separate Logistics or Site module is not included.
-- Measurement, Billing and Payment are future and separate.
+- Actual Billing, Accounts and Payment workflows are deferred.
 - Prototype changes are local only and are not persisted.

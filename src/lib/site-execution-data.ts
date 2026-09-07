@@ -42,6 +42,7 @@ export const siteQCStatuses = [
   "Rectification Required",
 ] as const;
 export const handoverStatuses = ["Pending", "Ready", "Handed Over"] as const;
+export const measurementStatuses = ["Not Required", "Pending", "Done"] as const;
 export const siteDelayReasons = [
   "Client Dependency",
   "Material",
@@ -115,6 +116,11 @@ export type SiteExecution = {
     handoverDocumentLink: string;
     handoverNotes: string;
   };
+  measurementStatus: (typeof measurementStatuses)[number];
+  measurementDate: string;
+  measurementBy: string;
+  measurementDriveLink: string;
+  measurementNotes: string;
 };
 
 const drive = "https://drive.google.com/";
@@ -128,9 +134,9 @@ export const siteExecutionByJobCode: Record<string, SiteExecution> = {
     plannedSiteStartDate: "2026-08-29",
     actualSiteStartDate: "2026-08-30",
     targetSiteCompletionDate: "2026-09-08",
-    actualSiteCompletionDate: "",
-    siteStatus: "Site QC",
-    latestRemarks: "Fictional execution is ready for site QC review.",
+    actualSiteCompletionDate: "2026-09-07",
+    siteStatus: "Handed Over",
+    latestRemarks: "Fictional site execution and handover completed.",
     workPackages: [
       {
         id: "SWP-149-01",
@@ -203,11 +209,16 @@ export const siteExecutionByJobCode: Record<string, SiteExecution> = {
       notes: "",
     },
     handover: {
-      handoverStatus: "Ready",
-      handoverDate: "",
-      handoverDocumentLink: "",
-      handoverNotes: "Fictional handover-ready example.",
+      handoverStatus: "Handed Over",
+      handoverDate: "2026-09-07",
+      handoverDocumentLink: drive,
+      handoverNotes: "Fictional completed handover example.",
     },
+    measurementStatus: "Done",
+    measurementDate: "2026-09-07",
+    measurementBy: "Prototype Site Engineer",
+    measurementDriveLink: drive,
+    measurementNotes: "Fictional completed measurement record.",
   },
   GDS150: {
     jobCode: "GDS150",
@@ -272,5 +283,11 @@ export const siteExecutionByJobCode: Record<string, SiteExecution> = {
       handoverDocumentLink: "",
       handoverNotes: "",
     },
+    measurementStatus: "Pending",
+    measurementDate: "",
+    measurementBy: "",
+    measurementDriveLink: "",
+    measurementNotes:
+      "Measurement will follow site rectification and handover.",
   },
 };

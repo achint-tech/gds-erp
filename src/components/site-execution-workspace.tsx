@@ -5,6 +5,7 @@ import type { DispatchRecord, ProductionRecord } from "@/lib/production-data";
 import { formatTaskDate } from "@/lib/task-timing";
 import {
   handoverStatuses,
+  measurementStatuses,
   responsiblePartyTypes,
   siteDelayReasons,
   siteQCStatuses,
@@ -14,6 +15,7 @@ import {
   type SiteExecution,
 } from "@/lib/site-execution-data";
 import {
+  getBillingReadiness,
   getInstallationSummary,
   getSiteDeadlineHealth,
   isHandoverComplete,
@@ -62,6 +64,7 @@ export function SiteExecutionWorkspace({
   );
   const rectification = requiresRectification(site);
   const completed = isHandoverComplete(site);
+  const billingReadiness = getBillingReadiness(site);
   const update = <K extends keyof SiteExecution>(
     key: K,
     value: SiteExecution[K],
@@ -644,6 +647,98 @@ export function SiteExecutionWorkspace({
           </div>
         </section>
       </div>
+      <section
+        className={`panel p-5 ${
+          site.measurementStatus === "Done"
+            ? "border-emerald-300 bg-emerald-50"
+            : site.measurementStatus === "Pending"
+              ? "border-amber-300 bg-amber-50"
+              : ""
+        }`}
+        aria-labelledby="measurement-heading"
+      >
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <p className="eyebrow">Measurement</p>
+            <h2 id="measurement-heading" className="mt-1 font-bold">
+              {site.measurementStatus === "Done"
+                ? "Measurement Complete"
+                : site.measurementStatus === "Pending"
+                  ? "Measurement Pending"
+                  : "Measurement Not Required"}
+            </h2>
+            <p
+              className={`mt-2 text-sm font-bold ${billingReadiness.ready ? "text-emerald-800" : "text-slate-700"}`}
+            >
+              {billingReadiness.status}
+              {billingReadiness.reason ? ` · ${billingReadiness.reason}` : ""}
+            </p>
+          </div>
+          {site.measurementStatus === "Done" && site.measurementDriveLink && (
+            <a
+              className="button button-secondary"
+              href={site.measurementDriveLink}
+              target="_blank"
+              rel="noreferrer"
+            >
+              Open Measurements ↗
+            </a>
+          )}
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <SelectField
+            label="Measurement Status"
+            value={site.measurementStatus}
+            options={measurementStatuses}
+            onChange={(value) =>
+              update(
+                "measurementStatus",
+                value as SiteExecution["measurementStatus"],
+              )
+            }
+          />
+          {site.measurementStatus !== "Not Required" && (
+            <>
+              <DateField
+                label="Measurement Date"
+                value={site.measurementDate}
+                onChange={(value) => update("measurementDate", value)}
+              />
+              <label className="text-xs font-bold uppercase text-slate-500">
+                Measurement By
+                <input
+                  className="field mt-1"
+                  value={site.measurementBy}
+                  onChange={(event) =>
+                    update("measurementBy", event.target.value)
+                  }
+                />
+              </label>
+              <label className="text-xs font-bold uppercase text-slate-500">
+                Measurement Drive Link
+                <input
+                  className="field mt-1"
+                  type="url"
+                  value={site.measurementDriveLink}
+                  onChange={(event) =>
+                    update("measurementDriveLink", event.target.value)
+                  }
+                />
+              </label>
+              <label className="text-xs font-bold uppercase text-slate-500 sm:col-span-2">
+                Notes
+                <textarea
+                  className="field mt-1"
+                  value={site.measurementNotes}
+                  onChange={(event) =>
+                    update("measurementNotes", event.target.value)
+                  }
+                />
+              </label>
+            </>
+          )}
+        </div>
+      </section>
       <p className="text-xs text-slate-500">
         Prototype-only local changes are not persisted.
       </p>

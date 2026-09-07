@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import type { SiteExecution } from "./site-execution-data";
 import {
   getInstallationProgress,
+  getBillingReadiness,
   getSiteDeadlineHealth,
   isHandoverComplete,
+  isMeasurementComplete,
   requiresRectification,
 } from "./site-execution-utils";
 
@@ -12,6 +14,7 @@ const site = {
   actualSiteCompletionDate: "",
   qc: { qcStatus: "Pending", rectificationRequired: false },
   handover: { handoverStatus: "Pending" },
+  measurementStatus: "Pending",
 } as SiteExecution;
 
 describe("Site Execution derivations", () => {
@@ -62,5 +65,46 @@ describe("Site Execution derivations", () => {
         handover: { ...site.handover, handoverStatus: "Handed Over" },
       }),
     ).toBe(true);
+  });
+
+  it("treats Done and Not Required measurements as complete", () => {
+    expect(isMeasurementComplete({ measurementStatus: "Done" })).toBe(true);
+    expect(isMeasurementComplete({ measurementStatus: "Not Required" })).toBe(
+      true,
+    );
+    expect(isMeasurementComplete({ measurementStatus: "Pending" })).toBe(false);
+  });
+
+  it("derives Billing Ready only from completed handover and measurement", () => {
+    expect(
+      getBillingReadiness({
+        handover: { ...site.handover, handoverStatus: "Handed Over" },
+        measurementStatus: "Done",
+      }),
+    ).toEqual({ ready: true, status: "Billing Ready", reason: "" });
+    expect(
+      getBillingReadiness({
+        handover: { ...site.handover, handoverStatus: "Handed Over" },
+        measurementStatus: "Not Required",
+      }).ready,
+    ).toBe(true);
+  });
+
+  it("explains each Billing Not Ready condition", () => {
+    expect(getBillingReadiness(site).reason).toBe(
+      "Handover + Measurement Pending",
+    );
+    expect(
+      getBillingReadiness({
+        handover: { ...site.handover, handoverStatus: "Handed Over" },
+        measurementStatus: "Pending",
+      }).reason,
+    ).toBe("Measurement Pending");
+    expect(
+      getBillingReadiness({
+        handover: site.handover,
+        measurementStatus: "Not Required",
+      }).reason,
+    ).toBe("Handover Pending");
   });
 });

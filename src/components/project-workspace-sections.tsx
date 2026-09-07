@@ -18,6 +18,7 @@ import {
 } from "@/lib/production-utils";
 import type { SiteExecution } from "@/lib/site-execution-data";
 import {
+  getBillingReadiness,
   getInstallationSummary,
   getSiteDeadlineHealth,
   requiresRectification,
@@ -212,6 +213,7 @@ function SiteSummary({
   const deadline = getSiteDeadlineHealth(site);
   const installation = getInstallationSummary(site, records, dispatches);
   const rectification = requiresRectification(site);
+  const billingReadiness = getBillingReadiness(site);
   return (
     <section className="panel mt-5 p-5" aria-labelledby="site-summary-heading">
       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
@@ -236,6 +238,9 @@ function SiteSummary({
             className={`mt-1 text-sm ${rectification ? "font-bold text-amber-800" : "text-slate-600"}`}
           >
             QC: {site.qc.qcStatus} · Handover: {site.handover.handoverStatus}
+          </p>
+          <p className="mt-1 text-sm text-slate-600">
+            Measurement: {site.measurementStatus} · {billingReadiness.status}
           </p>
         </div>
         <button

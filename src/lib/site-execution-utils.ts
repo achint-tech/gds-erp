@@ -91,3 +91,36 @@ export function requiresRectification(site: Pick<SiteExecution, "qc">) {
 export function isHandoverComplete(site: Pick<SiteExecution, "handover">) {
   return site.handover.handoverStatus === "Handed Over";
 }
+
+export function isMeasurementComplete(
+  site: Pick<SiteExecution, "measurementStatus">,
+) {
+  return (
+    site.measurementStatus === "Done" ||
+    site.measurementStatus === "Not Required"
+  );
+}
+
+export function getBillingReadiness(
+  site: Pick<SiteExecution, "handover" | "measurementStatus">,
+) {
+  const handoverComplete = isHandoverComplete(site);
+  const measurementComplete = isMeasurementComplete(site);
+  if (handoverComplete && measurementComplete)
+    return {
+      ready: true as const,
+      status: "Billing Ready" as const,
+      reason: "",
+    };
+  const reason =
+    !handoverComplete && !measurementComplete
+      ? "Handover + Measurement Pending"
+      : !handoverComplete
+        ? "Handover Pending"
+        : "Measurement Pending";
+  return {
+    ready: false as const,
+    status: "Billing Not Ready" as const,
+    reason,
+  };
+}
