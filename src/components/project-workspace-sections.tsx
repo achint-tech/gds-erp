@@ -27,12 +27,25 @@ import {
   getSiteDeadlineHealth,
   requiresRectification,
 } from "@/lib/site-execution-utils";
+import type { WorkOrder } from "@/lib/work-order-data";
+import {
+  getWorkOrderHealth,
+  getWorkOrderSummary,
+} from "@/lib/work-order-utils";
+import type { MaterialRequest } from "@/lib/store-data";
+import {
+  getMaterialRequestHealth,
+  getRemainingAllocation,
+  getRequestShortage,
+  getStoreSummary,
+} from "@/lib/store-utils";
 
 type SectionName =
   | "overview"
   | "costing"
   | "design"
   | "purchase"
+  | "vendor-work-orders"
   | "production"
   | "site"
   | "billing"
@@ -43,6 +56,7 @@ export function ProjectWorkspaceSections({
   costing,
   design,
   purchase,
+  vendorWorkOrders,
   production,
   site,
   billing,
@@ -50,6 +64,8 @@ export function ProjectWorkspaceSections({
   costingSummary,
   designTasks = [],
   purchaseRequests = [],
+  workOrders = [],
+  storeRequests = [],
   productionRecords = [],
   dispatchRecords = [],
   siteExecution,
@@ -61,6 +77,7 @@ export function ProjectWorkspaceSections({
   costing: ReactNode;
   design: ReactNode;
   purchase: ReactNode;
+  vendorWorkOrders: ReactNode;
   production: ReactNode;
   site: ReactNode;
   billing: ReactNode;
@@ -68,6 +85,8 @@ export function ProjectWorkspaceSections({
   costingSummary?: CostingSummary;
   designTasks?: DesignTask[];
   purchaseRequests?: PurchaseRequest[];
+  workOrders?: WorkOrder[];
+  storeRequests?: MaterialRequest[];
   productionRecords?: ProductionRecord[];
   dispatchRecords?: DispatchRecord[];
   siteExecution?: SiteExecution;
@@ -77,6 +96,7 @@ export function ProjectWorkspaceSections({
 }) {
   const validInitialSection: SectionName =
     initialSection === "production" ||
+    initialSection === "vendor-work-orders" ||
     initialSection === "site" ||
     initialSection === "billing" ||
     initialSection === "payment"
@@ -116,6 +136,12 @@ export function ProjectWorkspaceSections({
           Purchase
         </TabButton>
         <TabButton
+          active={activeSection === "vendor-work-orders"}
+          onClick={() => setActiveSection("vendor-work-orders")}
+        >
+          Vendor / Work Orders
+        </TabButton>
+        <TabButton
           active={activeSection === "production"}
           onClick={() => setActiveSection("production")}
         >
@@ -146,6 +172,8 @@ export function ProjectWorkspaceSections({
           <NeedsAttention
             designTasks={designTasks}
             purchaseRequests={purchaseRequests}
+            workOrders={workOrders}
+            storeRequests={storeRequests}
             productionRecords={productionRecords}
             site={siteExecution}
             bills={bills}
@@ -203,6 +231,11 @@ export function ProjectWorkspaceSections({
             requests={purchaseRequests}
             onView={() => setActiveSection("purchase")}
           />
+          <StoreSummary requests={storeRequests} />
+          <WorkOrderSummary
+            orders={workOrders}
+            onView={() => setActiveSection("vendor-work-orders")}
+          />
           <ProductionSummary
             records={productionRecords}
             dispatches={dispatchRecords}
@@ -229,6 +262,10 @@ export function ProjectWorkspaceSections({
         <div role="tabpanel" aria-label="Purchase">
           {purchase}
         </div>
+      ) : activeSection === "vendor-work-orders" ? (
+        <div role="tabpanel" aria-label="Vendor / Work Orders">
+          {vendorWorkOrders}
+        </div>
       ) : activeSection === "production" ? (
         <div role="tabpanel" aria-label="Production">
           {production}
@@ -253,6 +290,8 @@ export function ProjectWorkspaceSections({
 function NeedsAttention({
   designTasks,
   purchaseRequests,
+  workOrders,
+  storeRequests,
   productionRecords,
   site,
   bills,
@@ -260,6 +299,8 @@ function NeedsAttention({
 }: {
   designTasks: DesignTask[];
   purchaseRequests: PurchaseRequest[];
+  workOrders: WorkOrder[];
+  storeRequests: MaterialRequest[];
   productionRecords: ProductionRecord[];
   site?: SiteExecution;
   bills: BillRecord[];
@@ -288,6 +329,42 @@ function NeedsAttention({
     items.push(`${overduePurchase} overdue Purchase request(s)`);
   if (awaitingApproval)
     items.push(`${awaitingApproval} Purchase request(s) awaiting approval`);
+  const overdueWorkOrders = workOrders.filter(
+    (order) => getWorkOrderHealth(order).health === "Overdue",
+  ).length;
+  const measurementPending = workOrders.filter(
+    (order) => order.status === "Measurement Pending",
+  ).length;
+  const completedNotPayable = workOrders.filter(
+    (order) => order.status === "Completed",
+  ).length;
+  if (overdueWorkOrders)
+    items.push(`${overdueWorkOrders} overdue Vendor Work Order(s)`);
+  if (measurementPending)
+    items.push(`${measurementPending} Vendor measurement pending`);
+  if (completedNotPayable)
+    items.push(
+      `${completedNotPayable} completed Work Order(s) not payable-ready`,
+    );
+  const storeShortages = storeRequests.filter(
+    (request) => getRequestShortage(request) > 0,
+  ).length;
+  const overdueStoreRequests = storeRequests.filter(
+    (request) => getMaterialRequestHealth(request).health === "Overdue",
+  ).length;
+  const availableNotIssued = storeRequests.filter(
+    (request) =>
+      !["Issued", "Closed"].includes(request.status) &&
+      request.allocations.some(
+        (allocation) => getRemainingAllocation(allocation) > 0,
+      ),
+  ).length;
+  if (storeShortages)
+    items.push(`${storeShortages} Store material request(s) with shortage`);
+  if (overdueStoreRequests)
+    items.push(`${overdueStoreRequests} overdue Store material request(s)`);
+  if (availableNotIssued)
+    items.push(`${availableNotIssued} Store request(s) ready to issue`);
   if (overdueProduction)
     items.push(`${overdueProduction} overdue Production fixture(s)`);
   if (productionRework)
@@ -417,6 +494,74 @@ function formatSummaryDate(value: string) {
         year: "numeric",
       }).format(new Date(`${value}T00:00:00`))
     : "—";
+}
+
+function StoreSummary({ requests }: { requests: MaterialRequest[] }) {
+  const summary = getStoreSummary([], requests);
+  const materialStatus =
+    summary.shortageRequestCount > 0
+      ? "Partial / Shortage"
+      : summary.readyToIssueCount > 0
+        ? "Available"
+        : requests.some((request) => request.status === "Issued")
+          ? "Issued"
+          : "No open requests";
+  return (
+    <section className="panel mt-5 p-5" aria-labelledby="store-summary-heading">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Store / Inventory</p>
+          <h2 id="store-summary-heading" className="mt-1 font-bold">
+            Material Status: {materialStatus}
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            {summary.openRequestCount} Open Material Requests ·{" "}
+            {summary.shortageRequestCount} With Shortage
+          </p>
+        </div>
+        <a className="button button-secondary" href="/store">
+          Open Store →
+        </a>
+      </div>
+    </section>
+  );
+}
+
+function WorkOrderSummary({
+  orders,
+  onView,
+}: {
+  orders: WorkOrder[];
+  onView: () => void;
+}) {
+  const summary = getWorkOrderSummary(orders);
+  return (
+    <section
+      className="panel mt-5 p-5"
+      aria-labelledby="work-order-summary-heading"
+    >
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+        <div>
+          <p className="eyebrow">Vendor / Work Orders</p>
+          <h2 id="work-order-summary-heading" className="mt-1 font-bold">
+            {summary.activeCount} Active Work Orders
+          </h2>
+          <p className="mt-2 text-sm text-slate-600">
+            Total Agreed: {formatBillAmount(summary.totalAgreedValue)} ·{" "}
+            {summary.payableReadyCount} Payable Ready · {summary.overdueCount}{" "}
+            Overdue
+          </p>
+        </div>
+        <button
+          className="button button-secondary"
+          type="button"
+          onClick={onView}
+        >
+          View Work Orders →
+        </button>
+      </div>
+    </section>
+  );
 }
 
 function ProductionSummary({

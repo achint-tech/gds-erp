@@ -8,6 +8,7 @@ import { PurchaseWorkspace } from "@/components/purchase-workspace";
 import { ProductionWorkspace } from "@/components/production-workspace";
 import { PaymentWorkspace } from "@/components/payment-workspace";
 import { SiteExecutionWorkspace } from "@/components/site-execution-workspace";
+import { WorkOrderWorkspace } from "@/components/work-order-workspace";
 import {
   activeProjects,
   archivedProjects,
@@ -21,6 +22,8 @@ import { dispatchRecords, productionRecords } from "@/lib/production-data";
 import { billsByJobCode } from "@/lib/billing-data";
 import { paymentsByJobCode } from "@/lib/payment-data";
 import { siteExecutionByJobCode } from "@/lib/site-execution-data";
+import { materialRequests as storeMaterialRequests } from "@/lib/store-data";
+import { workOrders } from "@/lib/work-order-data";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -77,6 +80,12 @@ export default async function ProjectOverviewPage({
     paymentReceivedDate: "",
     amountReceived: 0,
   };
+  const projectWorkOrders = workOrders.filter(
+    (order) => order.jobCode === project.jobCode,
+  );
+  const projectStoreRequests = storeMaterialRequests.filter(
+    (request) => request.jobCode === project.jobCode,
+  );
 
   const overview = (
     <>
@@ -182,6 +191,12 @@ export default async function ProjectOverviewPage({
       initialUrgent={projectUrgentPurchases}
     />
   );
+  const vendorWorkOrders = (
+    <WorkOrderWorkspace
+      jobCode={project.jobCode}
+      initialOrders={projectWorkOrders}
+    />
+  );
   const production = (
     <ProductionWorkspace
       records={projectProductionRecords}
@@ -244,6 +259,7 @@ export default async function ProjectOverviewPage({
         costing={costing}
         design={design}
         purchase={purchase}
+        vendorWorkOrders={vendorWorkOrders}
         production={production}
         site={site}
         billing={billing}
@@ -251,6 +267,8 @@ export default async function ProjectOverviewPage({
         costingSummary={costingData?.summary}
         designTasks={designTasks}
         purchaseRequests={projectPurchaseRequests}
+        workOrders={projectWorkOrders}
+        storeRequests={projectStoreRequests}
         productionRecords={projectProductionRecords}
         dispatchRecords={projectDispatchRecords}
         siteExecution={siteExecution}
