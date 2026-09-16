@@ -5,8 +5,8 @@
 - Database: Supabase PostgreSQL
 - Region: Mumbai (`ap-south-1`)
 - Application access: Drizzle ORM with postgres.js
-- Runtime connection: Supabase shared transaction-mode pooler
-- Schema status: intentionally empty until Phase 1B
+- Runtime connection: Supabase shared pooler
+- Schema status: project foundation (`financial_years`, `internal_users`, `projects`)
 
 Database access is server-only. The runtime client reads `DATABASE_URL`, requires SSL, disables prepared statements with `prepare: false`, and limits each application instance to one connection with `max: 1`.
 
@@ -30,32 +30,32 @@ pnpm db:check
 pnpm db:generate
 pnpm db:migrate
 pnpm db:studio
+pnpm db:init:project-foundation
 ```
 
 - `db:check` performs server-side `SELECT 1` and prints only success or failure.
 - `db:generate` creates migration files from reviewed schema changes; it does not apply them.
 - `db:migrate` applies reviewed migration files.
 - `db:studio` opens Drizzle Studio for an approved development database.
+- `db:init:project-foundation` idempotently initializes FY 2026-27 and the six approved internal users. It does not create projects.
 
 No schema command should be run against production without review and explicit approval.
 
 ## Migration connection considerations
 
-`DATABASE_URL` currently uses Supabase's shared transaction-mode pooler. It is appropriate for short-lived application queries when postgres.js uses `prepare: false`, but transaction pooling may not support every migration or Studio operation that relies on session-level behavior.
+`DATABASE_URL` currently uses Supabase's shared session-mode pooler on port 5432. The first reviewed migration was applied successfully through this connection. Transaction-mode pooler connections may not support every migration or Studio operation that relies on session-level behavior.
 
-Drizzle CLI prefers `MIGRATION_DATABASE_URL` when present and otherwise falls back to `DATABASE_URL`. Before the first real migration, verify Drizzle Kit against the pooler. If it is unsuitable, obtain a Supabase direct or session-mode connection and store it privately as `MIGRATION_DATABASE_URL`. No separate credential is required during this foundation-only phase because no migration is being applied.
+Drizzle CLI prefers `MIGRATION_DATABASE_URL` when present and otherwise falls back to `DATABASE_URL`. The current session-pooler connection supports the reviewed migration. If runtime access moves to transaction mode, obtain a Supabase direct or session-mode connection and store it privately as `MIGRATION_DATABASE_URL` before applying later migrations.
 
 SSL is enforced by the runtime client and added to the Drizzle CLI connection configuration.
 
-## Phase 1B boundary
+## Current project-foundation boundary
 
-Phase 1B begins only after schema review. Its remaining work is:
+The first project-foundation migration contains only the three approved tables. Current follow-up boundaries are:
 
-1. Confirm the migration connection strategy and backup/restore procedure.
-2. Add reviewed schemas for `financial_years`, `internal_users`, `projects`, `client_purchase_orders`, and `activity_log`.
-3. Generate, inspect, and approve the first migration.
-4. Apply it to an approved non-production environment.
-5. Add transactional Job Code reservation and Draft activation services.
-6. Add database constraints, server-side tests, and Row-Level Security policies before exposing tables.
+1. Confirm backup/restore procedures before production use.
+2. Keep the prototype UI on mock data until a separate database-backed UI task is approved.
+3. Add authentication and Row-Level Security before exposing tables directly to users.
+4. Treat Client PO, Activity Log, and all later workflow tables as separate reviewed slices.
 
 The broader proposed model remains in `docs/architecture/persistence-data-model.md`.
