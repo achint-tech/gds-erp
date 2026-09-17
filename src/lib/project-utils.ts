@@ -1,4 +1,16 @@
-import type { Project } from "./prototype-data";
+export type ProjectListItem = {
+  financialYear: string;
+  jobCode: string;
+  projectName: string;
+  brand: string;
+  projectType: string;
+  projectLead: string;
+  projectManager: string;
+  status: string;
+  routeKey?: string;
+  source?: "persistent" | "demo";
+  lifecycleState?: string;
+};
 
 export type ProjectFilters = {
   search: string;
@@ -9,7 +21,10 @@ export type ProjectFilters = {
   status: string;
 };
 
-export function filterProjects(projects: Project[], filters: ProjectFilters) {
+export function filterProjects(
+  projects: ProjectListItem[],
+  filters: ProjectFilters,
+) {
   const query = filters.search.trim().toLowerCase();
   return projects.filter((project) => {
     const matchesSearch =

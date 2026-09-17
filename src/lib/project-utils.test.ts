@@ -56,7 +56,7 @@ describe("filterProjects", () => {
     expect(
       filterProjects(activeProjects, {
         ...emptyFilters,
-        status: "Installation",
+        status: "Payment",
       }).map((project) => project.jobCode),
     ).toEqual(["GDS149"]);
   });

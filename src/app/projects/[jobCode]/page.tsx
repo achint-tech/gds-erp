@@ -9,6 +9,7 @@ import { ProductionWorkspace } from "@/components/production-workspace";
 import { PaymentWorkspace } from "@/components/payment-workspace";
 import { SiteExecutionWorkspace } from "@/components/site-execution-workspace";
 import { WorkOrderWorkspace } from "@/components/work-order-workspace";
+import { PersistedProjectWorkspace } from "@/components/persisted-project-workspace";
 import {
   activeProjects,
   archivedProjects,
@@ -24,6 +25,12 @@ import { paymentsByJobCode } from "@/lib/payment-data";
 import { siteExecutionByJobCode } from "@/lib/site-execution-data";
 import { materialRequests as storeMaterialRequests } from "@/lib/store-data";
 import { workOrders } from "@/lib/work-order-data";
+import {
+  getPersistedProject,
+  getProjectFormOptions,
+} from "@/server/projects/project-service";
+
+export const dynamic = "force-dynamic";
 
 const fields = [
   ["financialYear", "Financial Year"],
@@ -58,7 +65,19 @@ export default async function ProjectOverviewPage({
   const project = [...activeProjects, ...archivedProjects].find(
     (item) => item.jobCode === jobCode,
   );
-  if (!project) notFound();
+  if (!project) {
+    const persistedProject = await getPersistedProject(jobCode).catch(
+      () => null,
+    );
+    if (!persistedProject) notFound();
+    const options =
+      persistedProject.lifecycleState === "Draft"
+        ? await getProjectFormOptions().catch(() => null)
+        : null;
+    return (
+      <PersistedProjectWorkspace project={persistedProject} options={options} />
+    );
+  }
   const costingData = costingWorkspaceByJobCode[project.jobCode];
   const designTasks = designTasksByJobCode[project.jobCode] ?? [];
   const purchaseOrder = purchaseOrdersByJobCode[project.jobCode];

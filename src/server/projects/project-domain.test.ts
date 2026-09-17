@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  classifyProjectUsers,
   createProjectCreationService,
   formatJobCode,
   ProjectActivationError,
@@ -78,6 +79,21 @@ class MemoryProjectStore implements ProjectCreationStore {
     return this.projects.get(projectId) ?? null;
   }
 
+  async updateDraft(
+    projectId: string,
+    input: Omit<CreateProjectDraftInput, "createdByUserId" | "effectiveDate">,
+  ) {
+    const existing = this.projects.get(projectId);
+    if (!existing) throw new Error("Project not found.");
+    const updated = {
+      ...existing,
+      ...input,
+      projectStatus: input.projectStatus ?? existing.projectStatus,
+    };
+    this.projects.set(projectId, updated);
+    return updated;
+  }
+
   async activateDraft(projectId: string, activatedAt: Date) {
     const existing = this.projects.get(projectId);
     if (!existing) throw new Error("Project not found.");
@@ -92,6 +108,10 @@ class MemoryProjectStore implements ProjectCreationStore {
 
   delete(projectId: string) {
     this.projects.delete(projectId);
+  }
+
+  get size() {
+    return this.projects.size;
   }
 
   insertForConstraintTest(project: ProjectDraft) {
@@ -135,6 +155,13 @@ const completeInput: CreateProjectDraftInput = {
 };
 
 describe("persistent project foundation domain", () => {
+  it("creates exactly one persisted project on first Save Draft", async () => {
+    const store = new MemoryProjectStore([currentYear()]);
+    const service = createProjectCreationService(store);
+    await service.saveDraft(completeInput);
+    expect(store.size).toBe(1);
+  });
+
   it("reserves GDS151 first and GDS152 next for FY 2026-27", async () => {
     const service = createProjectCreationService(
       new MemoryProjectStore([currentYear()]),
@@ -249,5 +276,68 @@ describe("persistent project foundation domain", () => {
     expect(project.createdByUserId).toBe("creator-user");
     expect(project.createdByUserId).not.toBe(project.leadUserId);
     expect(project.createdByUserId).not.toBe(project.projectManagerUserId);
+  });
+
+  it("updates an existing Draft without reserving another Job Code", async () => {
+    const store = new MemoryProjectStore([currentYear()]);
+    const service = createProjectCreationService(store);
+    const firstSave = await service.saveDraft(completeInput);
+    const secondSave = await service.saveDraft({
+      ...completeInput,
+      projectId: firstSave.id,
+      projectName: "Updated Project",
+    });
+    expect(secondSave.id).toBe(firstSave.id);
+    expect(secondSave.jobCode).toBe("GDS151");
+    expect(secondSave.projectName).toBe("Updated Project");
+    expect((await service.createFirstDraft(completeInput)).jobCode).toBe(
+      "GDS152",
+    );
+  });
+
+  it("reloads a persisted project through a fresh service read", async () => {
+    const store = new MemoryProjectStore([currentYear()]);
+    const firstService = createProjectCreationService(store);
+    const saved = await firstService.saveDraft(completeInput);
+    const freshService = createProjectCreationService(store);
+    const reloaded = await store.findProjectById(saved.id);
+    expect(reloaded).toMatchObject({
+      id: saved.id,
+      jobCode: "GDS151",
+      projectName: "Test Project",
+    });
+    expect(freshService).not.toBe(firstService);
+  });
+
+  it("classifies Lead and PM options from internal-user capabilities", () => {
+    const options = classifyProjectUsers([
+      {
+        id: "both",
+        displayName: "Multi Capability User",
+        capabilities: ["project_lead", "project_manager"],
+      },
+      {
+        id: "inactive-capability",
+        displayName: "Manager",
+        capabilities: ["project_manager"],
+      },
+    ]);
+    expect(options.leads.map(({ id }) => id)).toEqual(["both"]);
+    expect(options.projectManagers.map(({ id }) => id)).toEqual([
+      "both",
+      "inactive-capability",
+    ]);
+    expect(options.creators).toHaveLength(2);
+  });
+
+  it("propagates database errors without returning a fake saved project", async () => {
+    const store = new MemoryProjectStore([currentYear()]);
+    store.createDraftWithReservedJobCode = async () => {
+      throw new Error("Database unavailable");
+    };
+    const service = createProjectCreationService(store);
+    await expect(service.saveDraft(completeInput)).rejects.toThrow(
+      "Database unavailable",
+    );
   });
 });

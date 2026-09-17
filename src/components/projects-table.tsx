@@ -2,14 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { filterProjects } from "@/lib/project-utils";
-import {
-  approvedProjectStatuses,
-  approvedProjectTypes,
-  projectLeads,
-  approvedProjectManagers,
-  type Project,
-} from "@/lib/prototype-data";
+import { filterProjects, type ProjectListItem } from "@/lib/project-utils";
 
 const emptyFilters = {
   search: "",
@@ -24,12 +17,29 @@ export function ProjectsTable({
   projects,
   archived = false,
 }: {
-  projects: Project[];
+  projects: ProjectListItem[];
   archived?: boolean;
 }) {
   const [filters, setFilters] = useState(emptyFilters);
   const brands = useMemo(
     () => [...new Set(projects.map((project) => project.brand))].sort(),
+    [projects],
+  );
+  const types = useMemo(
+    () => [...new Set(projects.map((project) => project.projectType))].sort(),
+    [projects],
+  );
+  const leads = useMemo(
+    () => [...new Set(projects.map((project) => project.projectLead))].sort(),
+    [projects],
+  );
+  const managers = useMemo(
+    () =>
+      [...new Set(projects.map((project) => project.projectManager))].sort(),
+    [projects],
+  );
+  const statuses = useMemo(
+    () => [...new Set(projects.map((project) => project.status))].sort(),
     [projects],
   );
   const results = useMemo(
@@ -70,33 +80,32 @@ export function ProjectsTable({
           <Filter
             label="All types"
             value={filters.type}
-            options={approvedProjectTypes}
+            options={types}
             onChange={(value) => set("type", value)}
           />
           <Filter
             label="All leads"
             value={filters.lead}
-            options={projectLeads}
+            options={leads}
             onChange={(value) => set("lead", value)}
           />
           <Filter
             label="All PMs"
             value={filters.manager}
-            options={approvedProjectManagers}
+            options={managers}
             onChange={(value) => set("manager", value)}
           />
           <Filter
             label="All statuses"
             value={filters.status}
-            options={approvedProjectStatuses}
+            options={statuses}
             onChange={(value) => set("status", value)}
           />
         </div>
       </div>
       <div className="flex items-center justify-between px-5 py-3 text-xs text-slate-500">
         <span>
-          {results.length} fictional{" "}
-          {results.length === 1 ? "project" : "projects"}
+          {results.length} {results.length === 1 ? "project" : "projects"}
         </span>
         <button
           className="font-bold text-blue-800"
@@ -128,15 +137,20 @@ export function ProjectsTable({
           <tbody className="divide-y divide-slate-100">
             {results.map((project) => (
               <tr
-                key={`${project.financialYear}-${project.jobCode}`}
+                key={`${project.financialYear}-${project.routeKey ?? project.jobCode}`}
                 className="hover:bg-blue-50/60"
               >
                 <td className="px-4 py-4 font-bold text-slate-700">
-                  {project.jobCode}
+                  <span>{project.jobCode}</span>
+                  {project.source && (
+                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">
+                      {project.source === "persistent" ? "Saved" : "Demo"}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-4 font-semibold">
                   <Link
-                    href={`/projects/${project.jobCode}`}
+                    href={`/projects/${project.routeKey ?? project.jobCode}`}
                     className="text-blue-800 underline-offset-4 hover:underline"
                   >
                     {project.projectName}
@@ -150,6 +164,11 @@ export function ProjectsTable({
                   <span className="whitespace-nowrap rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                     {project.status}
                   </span>
+                  {project.lifecycleState === "Draft" && (
+                    <span className="ml-2 whitespace-nowrap rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-900">
+                      Draft
+                    </span>
+                  )}
                 </td>
               </tr>
             ))}
@@ -159,7 +178,7 @@ export function ProjectsTable({
                   colSpan={7}
                   className="px-5 py-14 text-center text-slate-500"
                 >
-                  No fictional projects match these filters.
+                  No projects match these filters.
                 </td>
               </tr>
             )}

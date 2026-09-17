@@ -29,6 +29,33 @@ export type ProjectType = (typeof approvedProjectTypes)[number];
 export type ProjectStatus = (typeof approvedProjectStatuses)[number];
 export type ProjectLifecycle = (typeof projectLifecycles)[number];
 
+export type InternalUserCapabilityRecord = {
+  id: string;
+  displayName: string;
+  capabilities: string[];
+};
+
+export function classifyProjectUsers(users: InternalUserCapabilityRecord[]) {
+  const toOption = ({ id, displayName }: InternalUserCapabilityRecord) => ({
+    id,
+    displayName,
+  });
+  const leads = users
+    .filter(({ capabilities }) => capabilities.includes("project_lead"))
+    .map(toOption);
+  const projectManagers = users
+    .filter(({ capabilities }) => capabilities.includes("project_manager"))
+    .map(toOption);
+  const creators = users
+    .filter(({ capabilities }) =>
+      capabilities.some((capability) =>
+        ["project_lead", "project_manager"].includes(capability),
+      ),
+    )
+    .map(toOption);
+  return { leads, projectManagers, creators };
+}
+
 export type ProjectDraft = {
   id: string;
   financialYearId: string;
@@ -65,6 +92,15 @@ export type CreateProjectDraftInput = {
   clientPocEmail?: string | null;
   clientPocPhone?: string | null;
   notes?: string | null;
+};
+
+export type UpdateProjectDraftInput = Omit<
+  CreateProjectDraftInput,
+  "createdByUserId" | "effectiveDate"
+>;
+
+export type SaveProjectDraftInput = CreateProjectDraftInput & {
+  projectId?: string;
 };
 
 export const activationFieldLabels = {
@@ -116,12 +152,36 @@ export interface ProjectCreationStore {
     input: CreateProjectDraftInput,
   ): Promise<ProjectDraft>;
   findProjectById(projectId: string): Promise<ProjectDraft | null>;
+  updateDraft(
+    projectId: string,
+    input: UpdateProjectDraftInput,
+  ): Promise<ProjectDraft>;
   activateDraft(projectId: string, activatedAt: Date): Promise<ProjectDraft>;
 }
 
 export function createProjectCreationService(store: ProjectCreationStore) {
   return {
     createFirstDraft(input: CreateProjectDraftInput) {
+      return store.createDraftWithReservedJobCode(input);
+    },
+
+    saveDraft(input: SaveProjectDraftInput) {
+      if (input.projectId) {
+        return store.updateDraft(input.projectId, {
+          projectName: input.projectName,
+          brand: input.brand,
+          projectType: input.projectType,
+          leadUserId: input.leadUserId,
+          projectManagerUserId: input.projectManagerUserId,
+          projectStatus: input.projectStatus,
+          siteAddress: input.siteAddress,
+          city: input.city,
+          clientPocName: input.clientPocName,
+          clientPocEmail: input.clientPocEmail,
+          clientPocPhone: input.clientPocPhone,
+          notes: input.notes,
+        });
+      }
       return store.createDraftWithReservedJobCode(input);
     },
 
