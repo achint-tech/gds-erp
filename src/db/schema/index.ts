@@ -4,6 +4,8 @@ import {
   check,
   date,
   integer,
+  index,
+  numeric,
   pgEnum,
   pgTable,
   text,
@@ -39,6 +41,11 @@ export const projectLifecycleEnum = pgEnum("project_lifecycle", [
   "Archived",
   "Closed",
 ]);
+
+export const clientPurchaseOrderStatusEnum = pgEnum(
+  "client_purchase_order_status",
+  ["Active", "Cancelled"],
+);
 
 const auditTimestamps = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
@@ -134,7 +141,30 @@ export const projects = pgTable(
   ],
 );
 
+export const clientPurchaseOrders = pgTable(
+  "client_purchase_orders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    poNumber: varchar("po_number", { length: 120 }).notNull(),
+    poDate: date("po_date", { mode: "string" }).notNull(),
+    poAmount: numeric("po_amount", { precision: 18, scale: 2 }).notNull(),
+    poDocumentLink: text("po_document_link"),
+    notes: text("notes"),
+    status: clientPurchaseOrderStatusEnum("status").default("Active").notNull(),
+    ...auditTimestamps,
+  },
+  (table) => [
+    index("client_purchase_orders_project_id_index").on(table.projectId),
+    check("client_purchase_orders_amount_positive", sql`${table.poAmount} > 0`),
+  ],
+);
+
 export type FinancialYear = typeof financialYears.$inferSelect;
 export type InternalUser = typeof internalUsers.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
+export type ClientPurchaseOrder = typeof clientPurchaseOrders.$inferSelect;
+export type NewClientPurchaseOrder = typeof clientPurchaseOrders.$inferInsert;

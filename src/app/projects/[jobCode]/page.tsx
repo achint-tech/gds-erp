@@ -29,6 +29,8 @@ import {
   getPersistedProject,
   getProjectFormOptions,
 } from "@/server/projects/project-service";
+import { clientPurchaseOrderService } from "@/server/client-purchase-orders/client-po-service";
+import type { ClientPurchaseOrder } from "@/server/client-purchase-orders/client-po-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -74,8 +76,22 @@ export default async function ProjectOverviewPage({
       persistedProject.lifecycleState === "Draft"
         ? await getProjectFormOptions().catch(() => null)
         : null;
+    let purchaseOrders: ClientPurchaseOrder[] = [];
+    let purchaseOrdersLoadError = false;
+    try {
+      purchaseOrders = await clientPurchaseOrderService.list(
+        persistedProject.id,
+      );
+    } catch {
+      purchaseOrdersLoadError = true;
+    }
     return (
-      <PersistedProjectWorkspace project={persistedProject} options={options} />
+      <PersistedProjectWorkspace
+        project={persistedProject}
+        options={options}
+        purchaseOrders={purchaseOrders}
+        purchaseOrdersLoadError={purchaseOrdersLoadError}
+      />
     );
   }
   const costingData = costingWorkspaceByJobCode[project.jobCode];

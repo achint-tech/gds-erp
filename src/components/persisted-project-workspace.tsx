@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ClientPoWorkspace } from "@/components/client-po-workspace";
 import {
   ProjectForm,
   type ProjectFormInitialValues,
@@ -7,6 +8,7 @@ import type {
   PersistedProjectView,
   ProjectFormOptions,
 } from "@/server/projects/project-service";
+import type { ClientPurchaseOrder } from "@/server/client-purchase-orders/client-po-domain";
 
 const overviewFields = [
   ["financialYear", "Financial Year"],
@@ -28,9 +30,13 @@ const overviewFields = [
 export function PersistedProjectWorkspace({
   project,
   options,
+  purchaseOrders,
+  purchaseOrdersLoadError,
 }: {
   project: PersistedProjectView;
   options: ProjectFormOptions | null;
+  purchaseOrders: ClientPurchaseOrder[];
+  purchaseOrdersLoadError: boolean;
 }) {
   const initialValues: ProjectFormInitialValues = {
     projectId: project.id,
@@ -115,13 +121,19 @@ export function PersistedProjectWorkspace({
         </section>
       )}
 
+      <ClientPoWorkspace
+        projectId={project.id}
+        purchaseOrders={purchaseOrders}
+        loadError={purchaseOrdersLoadError}
+      />
+
       <section className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center">
         <h2 className="text-sm font-bold text-slate-700">
           Workflow persistence is deferred
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Only core project information is database-backed. Costing, Design,
-          Purchase, Production, Site, Billing, Payment, and Store remain
+          Core project information and Client POs are database-backed. Costing,
+          Design, Purchase, Production, Site, Billing, Payment, and Store remain
           prototype-only and are not persisted for this project.
         </p>
       </section>

@@ -131,8 +131,12 @@ Do not define workflow stages, department tabs, financial information, document 
 ## Purchase Order information
 
 - V1 PO information consists of PO Number, PO Date, PO Amount, PO Document Link, PO Notes, and Added Date.
+- A project may have zero, one, or many Client POs.
+- Active Client POs contribute to the derived Total PO Value.
+- Cancelled Client POs remain visible but do not contribute to the total.
+- Active Client POs may be edited for data-entry corrections or cancelled; saved POs are not hard-deleted through the normal UI.
 - Project documents continue to be stored in Google Drive for V1; the ERP stores manually entered links.
-- Project Overview displays a compact PO summary when PO information exists and a restrained empty state otherwise.
+- Project Overview displays the Client PO records, Active PO count, derived Total PO Value, or a restrained empty state.
 - File uploads, Google Drive integration, PO parsing, OCR, accounting integration, automatic PO validation, and automatic project conversion are deferred.
 
 ## Design

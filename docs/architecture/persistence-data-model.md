@@ -95,7 +95,7 @@ Every operational table should use a UUID primary key, `created_at timestamptz`,
 | `financial_years` | `id`, `label`, `starts_on`, `ends_on`, `next_job_number`, `is_current` | Unique `label`; update counter in a locked transaction | Derived display formatting beyond the stored label |
 | `internal_users` | `id`, `display_name`, `active`, nullable future `auth_subject` | Referenced by ownership/audit columns; no RBAC tables yet | Passwords or role policy |
 | `projects` | `id`, `financial_year_id`, `job_code`, `project_name`, `brand`, `project_type`, `lead_user_id`, `project_manager_user_id`, `site_address`, `city`, client POC name/email/phone, manual `project_status`, `lifecycle_state`, `notes`, activation/archive/closure timestamps | Unique (`financial_year_id`, `job_code`); one root for all project records | Module health, Billing Readiness, Ready to Close |
-| `client_purchase_orders` | `id`, `project_id`, PO number/date/amount, document URL, notes, added date | V1 unique `project_id`; can become one-to-many later if approved | Parsed PO contents |
+| `client_purchase_orders` | `id`, `project_id`, PO number/date/amount, document URL, notes, status, timestamps | Many per project; amount positive; cancelled records retained | Total Active PO Value, parsed PO contents |
 
 Drafts use `projects.lifecycle_state = 'Draft'`. Activation validates all approved mandatory fields and changes it to `Active`. Drafts stay out of Active Projects. Project Status remains a manually selected high-level field and is not inferred from module statuses.
 
@@ -287,8 +287,7 @@ Migrate one module boundary at a time behind repository interfaces. During each 
 3. **Issued-record correction policy:** approve amendment/cancellation rules for Supplier POs, Work Orders and Bills before making them persistent.
 4. **Money and quantity precision:** confirm currency scope and required decimal precision per inventory unit; proposed defaults are `numeric(18,2)` for money and `numeric(18,3)` for quantities.
 5. **Stock opening balance and adjustments:** approve who can create/reverse Adjustment movements and the initial physical-count cutover process.
-6. Confirm whether one client PO per Project remains sufficient.
-7. Confirm whether Site QC, Handover or Measurement will need multiple historical records rather than one current record.
-8. Define when a payment over the billed total is permitted and how later transaction history will handle it.
-9. Decide whether brands/clients need normalization before initial Project migration.
-10. Define the minimum audit detail and retention period required for sensitive actions.
+6. Confirm whether Site QC, Handover or Measurement will need multiple historical records rather than one current record.
+7. Define when a payment over the billed total is permitted and how later transaction history will handle it.
+8. Decide whether brands/clients need normalization before initial Project migration.
+9. Define the minimum audit detail and retention period required for sensitive actions.
