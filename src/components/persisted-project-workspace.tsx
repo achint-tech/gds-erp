@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ClientPoWorkspace } from "@/components/client-po-workspace";
+import { PersistentCostingWorkspace } from "@/components/persistent-costing-workspace";
 import {
   ProjectForm,
   type ProjectFormInitialValues,
@@ -9,6 +10,7 @@ import type {
   ProjectFormOptions,
 } from "@/server/projects/project-service";
 import type { ClientPurchaseOrder } from "@/server/client-purchase-orders/client-po-domain";
+import type { CostingQuotationWorkspaceData } from "@/server/costing-quotation/costing-domain";
 
 const overviewFields = [
   ["financialYear", "Financial Year"],
@@ -32,11 +34,15 @@ export function PersistedProjectWorkspace({
   options,
   purchaseOrders,
   purchaseOrdersLoadError,
+  costingWorkspace,
+  costingLoadError,
 }: {
   project: PersistedProjectView;
   options: ProjectFormOptions | null;
   purchaseOrders: ClientPurchaseOrder[];
   purchaseOrdersLoadError: boolean;
+  costingWorkspace: CostingQuotationWorkspaceData | null;
+  costingLoadError: boolean;
 }) {
   const initialValues: ProjectFormInitialValues = {
     projectId: project.id,
@@ -127,14 +133,21 @@ export function PersistedProjectWorkspace({
         loadError={purchaseOrdersLoadError}
       />
 
+      <PersistentCostingWorkspace
+        projectId={project.id}
+        workspace={costingWorkspace}
+        loadError={costingLoadError}
+      />
+
       <section className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center">
         <h2 className="text-sm font-bold text-slate-700">
           Workflow persistence is deferred
         </h2>
         <p className="mt-1 text-sm text-slate-500">
-          Core project information and Client POs are database-backed. Costing,
-          Design, Purchase, Production, Site, Billing, Payment, and Store remain
-          prototype-only and are not persisted for this project.
+          Core project information, Client POs, and Costing &amp; Quotation are
+          database-backed. Design, Purchase, Production, Site, Billing, Payment,
+          and Store remain prototype-only and are not persisted for this
+          project.
         </p>
       </section>
     </>

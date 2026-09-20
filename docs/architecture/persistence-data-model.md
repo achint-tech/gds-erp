@@ -21,10 +21,9 @@ Key decisions:
 | --- | --- | --- |
 | Project and financial year | Core entity | `projects`, `financial_years` |
 | Client PO summary | Child record | `client_purchase_orders` |
-| Costing workspace summary | One-to-one workflow record | `costing_records` |
-| Costing source and categories | Child plus many-to-many values | `costing_sources`, `costing_source_categories` |
-| Quotation version | Historical child | `quotation_versions` |
-| Commercial note | Chronological child | `costing_notes` |
+| Costing requirement summary | One-to-one workflow record | `project_costing_requirements` |
+| Costing entry | Historical child | `project_costing_entries` |
+| Quotation version | Historical child | `project_quotation_versions` |
 | Design task/version | Versioned history | `design_requests`, `design_versions` |
 | Purchase request, supplier quote and supplier PO | Core workflow plus children | Separate tables |
 | Urgent purchase | Lightweight exception | `urgent_purchases` |
@@ -103,11 +102,9 @@ Drafts use `projects.lifecycle_state = 'Draft'`. Activation validates all approv
 
 | Table | Important columns | Relationships and constraints | Derived/not stored |
 | --- | --- | --- | --- |
-| `costing_records` | `project_id`, status, owner user ID, method, final internal cost, `current_quotation_version_id` | One per project; current-version pointer is explicit because “current” is a business selection, not always latest by date | Dashboard summary formatting |
-| `costing_sources` | `costing_record_id`, source type/name, status, external costing URL, amount, required/received dates, notes | Many per costing record; overlapping sources allowed | Cheapest/preferred source |
-| `costing_source_categories` | `costing_source_id`, `work_category` | Composite PK; category remains constrained text | Recommended categories from project type |
-| `quotation_versions` | `costing_record_id`, version number, amount, document URL, status, created/sent dates, notes | Unique (`costing_record_id`, `version_number`); submitted versions preserved | Current amount/version if pointer supplies it |
-| `costing_notes` | `costing_record_id`, occurred date, note | Append-oriented child | — |
+| `project_costing_requirements` | `project_id`, received date, BOQ URL, scope notes, status | Unique project ID; one editable summary per project | — |
+| `project_costing_entries` | `project_id`, work category, source, vendor/party, amount, costing URL, status, notes | Many per project; positive amount; cancelled rows retained | Active count and recorded amount excluding cancelled rows |
+| `project_quotation_versions` | `project_id`, version number, date, amount, quotation URL, status, notes | Unique (`project_id`, `version_number`); positive amount; partial unique index permits one Final per project | Latest and Final quotation summaries |
 | `design_requests` | `project_id`, design type, task name, priority | Stable design stream across revisions | Current/latest version summary |
 | `design_versions` | `design_request_id`, version number, previous version ID, assigned/assigner user IDs, assigned/due/completed/submitted dates, task status, client-response status, drawing URL, notes | Unique (`design_request_id`, `version_number`); submitted rows are historical | Overdue health, assigned age |
 

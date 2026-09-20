@@ -1,0 +1,893 @@
+{
+  "id": "9b20c7c0-5928-48bc-a8ff-03106d41e4eb",
+  "prevId": "145a9a77-0893-4cc6-ba30-f3b8e487ad8d",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.client_purchase_orders": {
+      "name": "client_purchase_orders",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "po_number": {
+          "name": "po_number",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "po_date": {
+          "name": "po_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "po_amount": {
+          "name": "po_amount",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "po_document_link": {
+          "name": "po_document_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "client_purchase_order_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Active'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "client_purchase_orders_project_id_index": {
+          "name": "client_purchase_orders_project_id_index",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "client_purchase_orders_project_id_projects_id_fk": {
+          "name": "client_purchase_orders_project_id_projects_id_fk",
+          "tableFrom": "client_purchase_orders",
+          "tableTo": "projects",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "client_purchase_orders_amount_positive": {
+          "name": "client_purchase_orders_amount_positive",
+          "value": "\"client_purchase_orders\".\"po_amount\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.financial_years": {
+      "name": "financial_years",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "label": {
+          "name": "label",
+          "type": "varchar(10)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "next_job_number": {
+          "name": "next_job_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "is_current": {
+          "name": "is_current",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "financial_years_label_unique": {
+          "name": "financial_years_label_unique",
+          "nullsNotDistinct": false,
+          "columns": ["label"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "financial_year_dates_valid": {
+          "name": "financial_year_dates_valid",
+          "value": "\"financial_years\".\"ends_on\" >= \"financial_years\".\"starts_on\""
+        },
+        "financial_year_next_job_number_positive": {
+          "name": "financial_year_next_job_number_positive",
+          "value": "\"financial_years\".\"next_job_number\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.internal_users": {
+      "name": "internal_users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "capabilities": {
+          "name": "capabilities",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
+        "auth_subject": {
+          "name": "auth_subject",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "internal_users_display_name_unique": {
+          "name": "internal_users_display_name_unique",
+          "nullsNotDistinct": false,
+          "columns": ["display_name"]
+        },
+        "internal_users_auth_subject_unique": {
+          "name": "internal_users_auth_subject_unique",
+          "nullsNotDistinct": false,
+          "columns": ["auth_subject"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_costing_entries": {
+      "name": "project_costing_entries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "work_category": {
+          "name": "work_category",
+          "type": "costing_work_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "costing_source": {
+          "name": "costing_source",
+          "type": "costing_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vendor_party": {
+          "name": "vendor_party",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cost_amount": {
+          "name": "cost_amount",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "costing_link": {
+          "name": "costing_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "costing_entry_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Awaiting'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "project_costing_entries_project_id_index": {
+          "name": "project_costing_entries_project_id_index",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "project_costing_entries_project_id_projects_id_fk": {
+          "name": "project_costing_entries_project_id_projects_id_fk",
+          "tableFrom": "project_costing_entries",
+          "tableTo": "projects",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "project_costing_entries_amount_positive": {
+          "name": "project_costing_entries_amount_positive",
+          "value": "\"project_costing_entries\".\"cost_amount\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.project_costing_requirements": {
+      "name": "project_costing_requirements",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requirement_received_date": {
+          "name": "requirement_received_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requirement_boq_link": {
+          "name": "requirement_boq_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope_notes": {
+          "name": "scope_notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "costing_status": {
+          "name": "costing_status",
+          "type": "costing_workflow_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Not Started'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "project_costing_requirements_project_id_projects_id_fk": {
+          "name": "project_costing_requirements_project_id_projects_id_fk",
+          "tableFrom": "project_costing_requirements",
+          "tableTo": "projects",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "project_costing_requirements_project_id_unique": {
+          "name": "project_costing_requirements_project_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["project_id"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.project_quotation_versions": {
+      "name": "project_quotation_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "project_id": {
+          "name": "project_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quotation_date": {
+          "name": "quotation_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quotation_amount": {
+          "name": "quotation_amount",
+          "type": "numeric(18, 2)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quotation_link": {
+          "name": "quotation_link",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "quotation_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Draft'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "project_quotation_versions_one_final_per_project": {
+          "name": "project_quotation_versions_one_final_per_project",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"project_quotation_versions\".\"status\" = 'Final'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "project_quotation_versions_project_id_index": {
+          "name": "project_quotation_versions_project_id_index",
+          "columns": [
+            {
+              "expression": "project_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "project_quotation_versions_project_id_projects_id_fk": {
+          "name": "project_quotation_versions_project_id_projects_id_fk",
+          "tableFrom": "project_quotation_versions",
+          "tableTo": "projects",
+          "columnsFrom": ["project_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "project_quotation_versions_project_version_unique": {
+          "name": "project_quotation_versions_project_version_unique",
+          "nullsNotDistinct": false,
+          "columns": ["project_id", "version_number"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "project_quotation_versions_version_positive": {
+          "name": "project_quotation_versions_version_positive",
+          "value": "\"project_quotation_versions\".\"version_number\" > 0"
+        },
+        "project_quotation_versions_amount_positive": {
+          "name": "project_quotation_versions_amount_positive",
+          "value": "\"project_quotation_versions\".\"quotation_amount\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.projects": {
+      "name": "projects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "financial_year_id": {
+          "name": "financial_year_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "job_code": {
+          "name": "job_code",
+          "type": "varchar(24)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "project_name": {
+          "name": "project_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "brand": {
+          "name": "brand",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "project_type": {
+          "name": "project_type",
+          "type": "project_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "lead_user_id": {
+          "name": "lead_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "project_manager_user_id": {
+          "name": "project_manager_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_by_user_id": {
+          "name": "created_by_user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "site_address": {
+          "name": "site_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "city": {
+          "name": "city",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_poc_name": {
+          "name": "client_poc_name",
+          "type": "varchar(160)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_poc_email": {
+          "name": "client_poc_email",
+          "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "client_poc_phone": {
+          "name": "client_poc_phone",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "project_status": {
+          "name": "project_status",
+          "type": "project_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Quotation'"
+        },
+        "lifecycle_state": {
+          "name": "lifecycle_state",
+          "type": "project_lifecycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Draft'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "activated_at": {
+          "name": "activated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "closed_at": {
+          "name": "closed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "projects_financial_year_id_financial_years_id_fk": {
+          "name": "projects_financial_year_id_financial_years_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "financial_years",
+          "columnsFrom": ["financial_year_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "projects_lead_user_id_internal_users_id_fk": {
+          "name": "projects_lead_user_id_internal_users_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "internal_users",
+          "columnsFrom": ["lead_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "projects_project_manager_user_id_internal_users_id_fk": {
+          "name": "projects_project_manager_user_id_internal_users_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "internal_users",
+          "columnsFrom": ["project_manager_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        },
+        "projects_created_by_user_id_internal_users_id_fk": {
+          "name": "projects_created_by_user_id_internal_users_id_fk",
+          "tableFrom": "projects",
+          "tableTo": "internal_users",
+          "columnsFrom": ["created_by_user_id"],
+          "columnsTo": ["id"],
+          "onDelete": "restrict",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "projects_financial_year_job_code_unique": {
+          "name": "projects_financial_year_job_code_unique",
+          "nullsNotDistinct": false,
+          "columns": ["financial_year_id", "job_code"]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "projects_job_code_format": {
+          "name": "projects_job_code_format",
+          "value": "\"projects\".\"job_code\" ~ '^GDS[0-9]{3,}$'"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.client_purchase_order_status": {
+      "name": "client_purchase_order_status",
+      "schema": "public",
+      "values": ["Active", "Cancelled"]
+    },
+    "public.costing_entry_status": {
+      "name": "costing_entry_status",
+      "schema": "public",
+      "values": ["Awaiting", "Received", "Finalised", "Cancelled"]
+    },
+    "public.costing_source": {
+      "name": "costing_source",
+      "schema": "public",
+      "values": ["Internal", "Vendor"]
+    },
+    "public.costing_work_category": {
+      "name": "costing_work_category",
+      "schema": "public",
+      "values": [
+        "Civil",
+        "Electrical",
+        "HVAC",
+        "Fire",
+        "Fixtures",
+        "Metal Fixtures",
+        "Signage / Branding",
+        "MEP",
+        "Flooring",
+        "Ceiling",
+        "Painting",
+        "Plumbing",
+        "Installation",
+        "Logistics",
+        "Other"
+      ]
+    },
+    "public.costing_workflow_status": {
+      "name": "costing_workflow_status",
+      "schema": "public",
+      "values": [
+        "Not Started",
+        "In Progress",
+        "Awaiting Cost",
+        "Costing Complete"
+      ]
+    },
+    "public.project_lifecycle": {
+      "name": "project_lifecycle",
+      "schema": "public",
+      "values": ["Draft", "Active", "Archived", "Closed"]
+    },
+    "public.project_status": {
+      "name": "project_status",
+      "schema": "public",
+      "values": [
+        "Quotation",
+        "PO Received",
+        "Project Planning",
+        "Design in Progress",
+        "In Production",
+        "Installation",
+        "Measurement",
+        "Handover",
+        "Billing",
+        "Payment"
+      ]
+    },
+    "public.project_type": {
+      "name": "project_type",
+      "schema": "public",
+      "values": ["Civil", "SIS", "Turnkey", "Fixtures"]
+    },
+    "public.quotation_status": {
+      "name": "quotation_status",
+      "schema": "public",
+      "values": ["Draft", "Submitted", "Superseded", "Final"]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

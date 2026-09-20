@@ -113,14 +113,15 @@ Do not define workflow stages, department tabs, financial information, document 
 
 - The Project Overview includes a `Costing & Quotation` section for the approved Pre-PO commercial workflow.
 - Costing calculations remain in existing Google Sheets for V1.
-- GDS ERP stores and organises links to client BOQs, internal production costing, vendor costing, final costing, and quotation versions.
+- GDS ERP stores one editable requirement/BOQ summary per project, multiple costing entries, and versioned quotation history. Detailed calculations and documents remain in Google Drive or Google Sheets.
 - Google Sheet and Google Drive documents are represented by manually entered URLs only.
 - A project may use Internal Production, an External Vendor, or both as costing sources.
 - A project may have multiple vendor costing sources.
 - A Costing Source may cover one or more Work Categories.
 - Multiple costing sources may cover the same Work Category, and internal and vendor costing may coexist for the same category.
-- The workspace displays costing status, owner, method, final internal cost, current quotation amount and version, quotation status, and last-updated information.
-- The workspace records costing documents, costing sources, quotation versions, and commercial notes.
+- The workspace displays costing status, active costing-entry count, recorded costing amount, latest quotation, and final quotation value.
+- Recorded costing amount excludes cancelled entries and must not be presented as final project cost.
+- Quotation versions are server-assigned per project; submitted and final commercial history is preserved.
 - The full Costing & Quotation workspace is displayed only within its dedicated project section. Project Overview contains only a compact commercial summary.
 - Project Type determines the default/recommended Costing Work Categories presented in the UI. The underlying costing model remains flexible, and additional categories may be added when required.
 - Prototype additions use local React state and are not persisted.

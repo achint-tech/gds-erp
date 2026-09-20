@@ -11,6 +11,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -46,6 +47,50 @@ export const clientPurchaseOrderStatusEnum = pgEnum(
   "client_purchase_order_status",
   ["Active", "Cancelled"],
 );
+
+export const costingWorkflowStatusEnum = pgEnum("costing_workflow_status", [
+  "Not Started",
+  "In Progress",
+  "Awaiting Cost",
+  "Costing Complete",
+]);
+
+export const costingSourceEnum = pgEnum("costing_source", [
+  "Internal",
+  "Vendor",
+]);
+
+export const costingEntryStatusEnum = pgEnum("costing_entry_status", [
+  "Awaiting",
+  "Received",
+  "Finalised",
+  "Cancelled",
+]);
+
+export const costingWorkCategoryEnum = pgEnum("costing_work_category", [
+  "Civil",
+  "Electrical",
+  "HVAC",
+  "Fire",
+  "Fixtures",
+  "Metal Fixtures",
+  "Signage / Branding",
+  "MEP",
+  "Flooring",
+  "Ceiling",
+  "Painting",
+  "Plumbing",
+  "Installation",
+  "Logistics",
+  "Other",
+]);
+
+export const quotationStatusEnum = pgEnum("quotation_status", [
+  "Draft",
+  "Submitted",
+  "Superseded",
+  "Final",
+]);
 
 const auditTimestamps = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
@@ -162,9 +207,101 @@ export const clientPurchaseOrders = pgTable(
   ],
 );
 
+export const projectCostingRequirements = pgTable(
+  "project_costing_requirements",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    requirementReceivedDate: date("requirement_received_date", {
+      mode: "string",
+    }),
+    requirementBoqLink: text("requirement_boq_link"),
+    scopeNotes: text("scope_notes"),
+    costingStatus: costingWorkflowStatusEnum("costing_status")
+      .default("Not Started")
+      .notNull(),
+    ...auditTimestamps,
+  },
+  (table) => [
+    unique("project_costing_requirements_project_id_unique").on(
+      table.projectId,
+    ),
+  ],
+);
+
+export const projectCostingEntries = pgTable(
+  "project_costing_entries",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    workCategory: costingWorkCategoryEnum("work_category").notNull(),
+    costingSource: costingSourceEnum("costing_source").notNull(),
+    vendorParty: varchar("vendor_party", { length: 255 }),
+    costAmount: numeric("cost_amount", { precision: 18, scale: 2 }).notNull(),
+    costingLink: text("costing_link"),
+    status: costingEntryStatusEnum("status").default("Awaiting").notNull(),
+    notes: text("notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    index("project_costing_entries_project_id_index").on(table.projectId),
+    check(
+      "project_costing_entries_amount_positive",
+      sql`${table.costAmount} > 0`,
+    ),
+  ],
+);
+
+export const projectQuotationVersions = pgTable(
+  "project_quotation_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    quotationDate: date("quotation_date", { mode: "string" }).notNull(),
+    quotationAmount: numeric("quotation_amount", {
+      precision: 18,
+      scale: 2,
+    }).notNull(),
+    quotationLink: text("quotation_link"),
+    status: quotationStatusEnum("status").default("Draft").notNull(),
+    notes: text("notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    unique("project_quotation_versions_project_version_unique").on(
+      table.projectId,
+      table.versionNumber,
+    ),
+    uniqueIndex("project_quotation_versions_one_final_per_project")
+      .on(table.projectId)
+      .where(sql`${table.status} = 'Final'`),
+    index("project_quotation_versions_project_id_index").on(table.projectId),
+    check(
+      "project_quotation_versions_version_positive",
+      sql`${table.versionNumber} > 0`,
+    ),
+    check(
+      "project_quotation_versions_amount_positive",
+      sql`${table.quotationAmount} > 0`,
+    ),
+  ],
+);
+
 export type FinancialYear = typeof financialYears.$inferSelect;
 export type InternalUser = typeof internalUsers.$inferSelect;
 export type Project = typeof projects.$inferSelect;
 export type NewProject = typeof projects.$inferInsert;
 export type ClientPurchaseOrder = typeof clientPurchaseOrders.$inferSelect;
 export type NewClientPurchaseOrder = typeof clientPurchaseOrders.$inferInsert;
+export type ProjectCostingRequirement =
+  typeof projectCostingRequirements.$inferSelect;
+export type ProjectCostingEntry = typeof projectCostingEntries.$inferSelect;
+export type ProjectQuotationVersion =
+  typeof projectQuotationVersions.$inferSelect;
