@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ClientPoWorkspace } from "@/components/client-po-workspace";
 import { PersistentCostingWorkspace } from "@/components/persistent-costing-workspace";
 import { PersistentDesignWorkspace } from "@/components/persistent-design-workspace";
+import { PersistentPrintRequests } from "@/components/persistent-print-requests";
 import {
   ProjectForm,
   type ProjectFormInitialValues,
@@ -13,6 +14,7 @@ import type {
 import type { ClientPurchaseOrder } from "@/server/client-purchase-orders/client-po-domain";
 import type { CostingQuotationWorkspaceData } from "@/server/costing-quotation/costing-domain";
 import type { DesignWorkspaceData } from "@/server/design/design-domain";
+import type { PrintRequestWorkspaceData } from "@/server/print-requests/print-request-domain";
 
 const overviewFields = [
   ["financialYear", "Financial Year"],
@@ -40,6 +42,8 @@ export function PersistedProjectWorkspace({
   costingLoadError,
   designWorkspace,
   designLoadError,
+  printWorkspace,
+  printLoadError,
 }: {
   project: PersistedProjectView;
   options: ProjectFormOptions | null;
@@ -49,6 +53,8 @@ export function PersistedProjectWorkspace({
   costingLoadError: boolean;
   designWorkspace: DesignWorkspaceData | null;
   designLoadError: boolean;
+  printWorkspace: PrintRequestWorkspaceData | null;
+  printLoadError: boolean;
 }) {
   const initialValues: ProjectFormInitialValues = {
     projectId: project.id,
@@ -151,15 +157,21 @@ export function PersistedProjectWorkspace({
         loadError={designLoadError}
       />
 
+      <PersistentPrintRequests
+        projectId={project.id}
+        workspace={printWorkspace}
+        loadError={printLoadError}
+      />
+
       <section className="mt-5 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-6 text-center">
         <h2 className="text-sm font-bold text-slate-700">
           Workflow persistence is deferred
         </h2>
         <p className="mt-1 text-sm text-slate-500">
           Core project information, Client POs, Costing &amp; Quotation, and
-          Design are database-backed. Purchase, Production, Site, Billing,
-          Payment, and Store remain prototype-only and are not persisted for
-          this project.
+          Design, and Print / Branding are database-backed. Purchase,
+          Production, Site, Billing, Payment, and Store remain prototype-only
+          and are not persisted for this project.
         </p>
       </section>
     </>

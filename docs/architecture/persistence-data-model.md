@@ -25,6 +25,7 @@ Key decisions:
 | Costing entry | Historical child | `project_costing_entries` |
 | Quotation version | Historical child | `project_quotation_versions` |
 | Design task/version | Task with versioned drawing history | `design_tasks`, `design_versions` |
+| Print / Branding requirement | Operational project child | `print_requests` |
 | Purchase request, supplier quote and supplier PO | Core workflow plus children | Separate tables |
 | Urgent purchase | Lightweight exception | `urgent_purchases` |
 | Vendor Work Order | Core project child | `vendor_work_orders` |
@@ -109,6 +110,14 @@ Drafts use `projects.lifecycle_state = 'Draft'`. Activation validates all approv
 | `design_versions` | `design_task_id`, version number, drawing URL, submitted date, status, revision notes | Unique (`design_task_id`, `version_number`); one Approved version per task; historical rows retained | Current and latest Submitted versions |
 
 Use `design_tasks` plus `design_versions` so the operational task remains stable while V1, V2, and later drawing history is preserved.
+
+### Print / Branding
+
+| Table | Important columns | Relationships and constraints | Derived/not stored |
+| --- | --- | --- | --- |
+| `print_requests` | `project_id`, type, description, optional dimensions/unit, quantity, location, artwork URL, requester user ID, required date, optional vendor name, status, notes | Many per project; project/requester FKs; positive quantity/dimensions; paired dimensions | Open, In Production, Ready, Installed counts; all commercial Purchase data |
+
+Purchase linkage is deferred until Purchase persistence is approved. Print Requests remain operational requirements and contain no commercial values.
 
 ### Purchase and outsourced execution
 

@@ -29,6 +29,13 @@
       "when": 1789972800469,
       "tag": "0003_last_doctor_doom",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789976083039,
+      "tag": "0004_shiny_northstar",
+      "breakpoints": true
     }
   ]
 }

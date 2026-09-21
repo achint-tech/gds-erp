@@ -122,6 +122,31 @@ export const designVersionStatusEnum = pgEnum("design_version_status", [
   "Approved",
 ]);
 
+export const printTypeEnum = pgEnum("print_type", [
+  "Vinyl",
+  "Sticker",
+  "Flex",
+  "Sunboard",
+  "Fabric",
+  "Backlit",
+  "Other",
+]);
+export const printSizeUnitEnum = pgEnum("print_size_unit", [
+  "mm",
+  "cm",
+  "inch",
+  "ft",
+]);
+export const printRequestStatusEnum = pgEnum("print_request_status", [
+  "Raised",
+  "Sent to Vendor",
+  "In Production",
+  "Ready",
+  "Dispatched",
+  "Installed",
+  "Cancelled",
+]);
+
 const auditTimestamps = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .defaultNow()
@@ -382,6 +407,51 @@ export const designVersions = pgTable(
   ],
 );
 
+export const printRequests = pgTable(
+  "print_requests",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    printType: printTypeEnum("print_type").notNull(),
+    description: text("description").notNull(),
+    width: numeric("width", { precision: 12, scale: 2 }),
+    height: numeric("height", { precision: 12, scale: 2 }),
+    sizeUnit: printSizeUnitEnum("size_unit"),
+    quantity: integer("quantity").notNull(),
+    location: varchar("location", { length: 255 }).notNull(),
+    artworkLink: text("artwork_link"),
+    requestedByUserId: uuid("requested_by_user_id")
+      .notNull()
+      .references(() => internalUsers.id, { onDelete: "restrict" }),
+    requiredByDate: date("required_by_date", { mode: "string" }),
+    vendorName: varchar("vendor_name", { length: 255 }),
+    status: printRequestStatusEnum("status").default("Raised").notNull(),
+    notes: text("notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    index("print_requests_project_id_index").on(table.projectId),
+    index("print_requests_requested_by_user_id_index").on(
+      table.requestedByUserId,
+    ),
+    check("print_requests_quantity_positive", sql`${table.quantity} > 0`),
+    check(
+      "print_requests_dimensions_complete",
+      sql`(${table.width} IS NULL AND ${table.height} IS NULL AND ${table.sizeUnit} IS NULL) OR (${table.width} IS NOT NULL AND ${table.height} IS NOT NULL AND ${table.sizeUnit} IS NOT NULL)`,
+    ),
+    check(
+      "print_requests_width_positive",
+      sql`${table.width} IS NULL OR ${table.width} > 0`,
+    ),
+    check(
+      "print_requests_height_positive",
+      sql`${table.height} IS NULL OR ${table.height} > 0`,
+    ),
+  ],
+);
+
 export type FinancialYear = typeof financialYears.$inferSelect;
 export type InternalUser = typeof internalUsers.$inferSelect;
 export type Project = typeof projects.$inferSelect;
@@ -395,3 +465,4 @@ export type ProjectQuotationVersion =
   typeof projectQuotationVersions.$inferSelect;
 export type DesignTask = typeof designTasks.$inferSelect;
 export type DesignVersion = typeof designVersions.$inferSelect;
+export type PrintRequest = typeof printRequests.$inferSelect;

@@ -35,6 +35,8 @@ import { costingQuotationService } from "@/server/costing-quotation/costing-serv
 import type { CostingQuotationWorkspaceData } from "@/server/costing-quotation/costing-domain";
 import { designService } from "@/server/design/design-service";
 import type { DesignWorkspaceData } from "@/server/design/design-domain";
+import { printRequestService } from "@/server/print-requests/print-request-service";
+import type { PrintRequestWorkspaceData } from "@/server/print-requests/print-request-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -108,6 +110,15 @@ export default async function ProjectOverviewPage({
     } catch {
       designLoadError = true;
     }
+    let printWorkspace: PrintRequestWorkspaceData | null = null;
+    let printLoadError = false;
+    try {
+      printWorkspace = await printRequestService.getWorkspace(
+        persistedProject.id,
+      );
+    } catch {
+      printLoadError = true;
+    }
     return (
       <PersistedProjectWorkspace
         project={persistedProject}
@@ -118,6 +129,8 @@ export default async function ProjectOverviewPage({
         costingLoadError={costingLoadError}
         designWorkspace={designWorkspace}
         designLoadError={designLoadError}
+        printWorkspace={printWorkspace}
+        printLoadError={printLoadError}
       />
     );
   }
