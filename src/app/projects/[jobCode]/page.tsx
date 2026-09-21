@@ -33,6 +33,8 @@ import { clientPurchaseOrderService } from "@/server/client-purchase-orders/clie
 import type { ClientPurchaseOrder } from "@/server/client-purchase-orders/client-po-domain";
 import { costingQuotationService } from "@/server/costing-quotation/costing-service";
 import type { CostingQuotationWorkspaceData } from "@/server/costing-quotation/costing-domain";
+import { designService } from "@/server/design/design-service";
+import type { DesignWorkspaceData } from "@/server/design/design-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +98,16 @@ export default async function ProjectOverviewPage({
     } catch {
       costingLoadError = true;
     }
+    let designWorkspace: DesignWorkspaceData | null = null;
+    let designLoadError = false;
+    try {
+      designWorkspace = await designService.getWorkspace(
+        persistedProject.id,
+        new Date().toISOString().slice(0, 10),
+      );
+    } catch {
+      designLoadError = true;
+    }
     return (
       <PersistedProjectWorkspace
         project={persistedProject}
@@ -104,6 +116,8 @@ export default async function ProjectOverviewPage({
         purchaseOrdersLoadError={purchaseOrdersLoadError}
         costingWorkspace={costingWorkspace}
         costingLoadError={costingLoadError}
+        designWorkspace={designWorkspace}
+        designLoadError={designLoadError}
       />
     );
   }

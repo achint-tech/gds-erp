@@ -24,7 +24,7 @@ Key decisions:
 | Costing requirement summary | One-to-one workflow record | `project_costing_requirements` |
 | Costing entry | Historical child | `project_costing_entries` |
 | Quotation version | Historical child | `project_quotation_versions` |
-| Design task/version | Versioned history | `design_requests`, `design_versions` |
+| Design task/version | Task with versioned drawing history | `design_tasks`, `design_versions` |
 | Purchase request, supplier quote and supplier PO | Core workflow plus children | Separate tables |
 | Urgent purchase | Lightweight exception | `urgent_purchases` |
 | Vendor Work Order | Core project child | `vendor_work_orders` |
@@ -105,10 +105,10 @@ Drafts use `projects.lifecycle_state = 'Draft'`. Activation validates all approv
 | `project_costing_requirements` | `project_id`, received date, BOQ URL, scope notes, status | Unique project ID; one editable summary per project | — |
 | `project_costing_entries` | `project_id`, work category, source, vendor/party, amount, costing URL, status, notes | Many per project; positive amount; cancelled rows retained | Active count and recorded amount excluding cancelled rows |
 | `project_quotation_versions` | `project_id`, version number, date, amount, quotation URL, status, notes | Unique (`project_id`, `version_number`); positive amount; partial unique index permits one Final per project | Latest and Final quotation summaries |
-| `design_requests` | `project_id`, design type, task name, priority | Stable design stream across revisions | Current/latest version summary |
-| `design_versions` | `design_request_id`, version number, previous version ID, assigned/assigner user IDs, assigned/due/completed/submitted dates, task status, client-response status, drawing URL, notes | Unique (`design_request_id`, `version_number`); submitted rows are historical | Overdue health, assigned age |
+| `design_tasks` | `project_id`, design type, task name, assignee user ID, target date, status, waiting reason, notes | Many per project; assignee references an eligible internal user | Open, Waiting, Approved, and Overdue counts |
+| `design_versions` | `design_task_id`, version number, drawing URL, submitted date, status, revision notes | Unique (`design_task_id`, `version_number`); one Approved version per task; historical rows retained | Current and latest Submitted versions |
 
-Use `design_requests` plus `design_versions` rather than treating every version as an unrelated task. It gives one stable identity for a design stream, enforces version uniqueness, and preserves V1 → V2 lineage without duplicating the design subject.
+Use `design_tasks` plus `design_versions` so the operational task remains stable while V1, V2, and later drawing history is preserved.
 
 ### Purchase and outsourced execution
 

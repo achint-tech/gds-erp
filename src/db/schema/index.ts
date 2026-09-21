@@ -92,6 +92,36 @@ export const quotationStatusEnum = pgEnum("quotation_status", [
   "Final",
 ]);
 
+export const designTypeEnum = pgEnum("design_type", [
+  "2D",
+  "3D",
+  "MEP",
+  "Fixture Drawing",
+  "Other",
+]);
+
+export const designTaskStatusEnum = pgEnum("design_task_status", [
+  "Not Started",
+  "In Progress",
+  "Waiting",
+  "Approved",
+  "Closed",
+]);
+
+export const designWaitingForEnum = pgEnum("design_waiting_for", [
+  "Client Feedback",
+  "Site Measurement",
+  "Inputs",
+  "Other",
+]);
+
+export const designVersionStatusEnum = pgEnum("design_version_status", [
+  "Working",
+  "Submitted",
+  "Superseded",
+  "Approved",
+]);
+
 const auditTimestamps = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
     .defaultNow()
@@ -294,6 +324,64 @@ export const projectQuotationVersions = pgTable(
   ],
 );
 
+export const designTasks = pgTable(
+  "design_tasks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    designType: designTypeEnum("design_type").notNull(),
+    taskName: varchar("task_name", { length: 255 }).notNull(),
+    assignedToUserId: uuid("assigned_to_user_id")
+      .notNull()
+      .references(() => internalUsers.id, { onDelete: "restrict" }),
+    targetDate: date("target_date", { mode: "string" }).notNull(),
+    status: designTaskStatusEnum("status").default("Not Started").notNull(),
+    waitingFor: designWaitingForEnum("waiting_for"),
+    notes: text("notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    index("design_tasks_project_id_index").on(table.projectId),
+    index("design_tasks_assigned_to_user_id_index").on(table.assignedToUserId),
+    check(
+      "design_tasks_waiting_for_status_valid",
+      sql`${table.status} = 'Waiting' OR ${table.waitingFor} IS NULL`,
+    ),
+  ],
+);
+
+export const designVersions = pgTable(
+  "design_versions",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    designTaskId: uuid("design_task_id")
+      .notNull()
+      .references(() => designTasks.id, { onDelete: "restrict" }),
+    versionNumber: integer("version_number").notNull(),
+    drawingLink: text("drawing_link").notNull(),
+    submittedDate: date("submitted_date", { mode: "string" }),
+    status: designVersionStatusEnum("status").default("Working").notNull(),
+    revisionNotes: text("revision_notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    unique("design_versions_task_version_unique").on(
+      table.designTaskId,
+      table.versionNumber,
+    ),
+    uniqueIndex("design_versions_one_approved_per_task")
+      .on(table.designTaskId)
+      .where(sql`${table.status} = 'Approved'`),
+    index("design_versions_design_task_id_index").on(table.designTaskId),
+    check(
+      "design_versions_version_number_positive",
+      sql`${table.versionNumber} > 0`,
+    ),
+  ],
+);
+
 export type FinancialYear = typeof financialYears.$inferSelect;
 export type InternalUser = typeof internalUsers.$inferSelect;
 export type Project = typeof projects.$inferSelect;
@@ -305,3 +393,5 @@ export type ProjectCostingRequirement =
 export type ProjectCostingEntry = typeof projectCostingEntries.$inferSelect;
 export type ProjectQuotationVersion =
   typeof projectQuotationVersions.$inferSelect;
+export type DesignTask = typeof designTasks.$inferSelect;
+export type DesignVersion = typeof designVersions.$inferSelect;

@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:check": "tsx --conditions=react-server scripts/check-database.ts",
-    "db:init:project-foundation": "tsx --conditions=react-server scripts/initialize-project-foundation.ts"
+    "db:init:project-foundation": "tsx --conditions=react-server scripts/initialize-project-foundation.ts",
+    "db:init:design-users": "tsx --conditions=react-server scripts/initialize-design-users.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.45.2",

@@ -144,14 +144,12 @@ Do not define workflow stages, department tabs, financial information, document 
 
 - Design may occur before or after PO.
 - Project Status and Design Task Status are independent.
-- Design Tasks track Assigned Date, Due Date, and Completed Date as separate fields.
-- One Design Task represents one Design Version, and historical versions remain intact.
-- Completed Date and Submitted Date are separate.
-- Design Task Status and Client Response Status are independent.
-- A drawing link is required to complete a Design Task.
-- Submitting a completed version closes it and records that it is waiting for the client.
-- Approved responses retain the version; requested revisions create the next sequential version.
-- Incomplete Design Tasks are automatically highlighted from their Due Date.
+- A project may have multiple Design Tasks; each task has a Design-eligible internal-user assignee, target date, status, optional waiting reason, and notes.
+- Design Task Status is `Not Started`, `In Progress`, `Waiting`, `Approved`, or `Closed`.
+- Each task may have multiple server-numbered drawing versions, and historical Submitted or Approved versions remain intact.
+- Drawing Version Status is `Working`, `Submitted`, `Superseded`, or `Approved`.
+- Design files remain in Google Drive; ERP stores operational links and version history only.
+- Open, Waiting, Approved, Overdue, Current Version, and Latest Submitted Version are derived.
 - Project Overview contains only a compact Design summary.
 - Full Design management is displayed only in the dedicated `Design` project section.
 - Design is not hidden or automatically completed based on Project Status.
