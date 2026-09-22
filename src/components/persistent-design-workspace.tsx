@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
+import { StatusBadge } from "@/components/status-badge";
 import {
   approveDesignVersionAction,
   saveDesignTaskAction,
@@ -260,7 +261,9 @@ function TaskRows({
         <td className="px-4 py-4">{task.assignedTo}</td>
         <td className="px-4 py-4">{task.targetDate}</td>
         <td className="px-4 py-4">
-          {task.status}
+          <StatusBadge tone={designStatusTone(task.status)}>
+            {task.status}
+          </StatusBadge>
           {task.waitingFor && (
             <span className="mt-1 block text-xs text-slate-500">
               {task.waitingFor}
@@ -307,7 +310,10 @@ function TaskRows({
                   className="flex flex-col justify-between gap-3 rounded-lg border bg-white p-3 sm:flex-row sm:items-center"
                 >
                   <p className="text-sm">
-                    <strong>V{version.versionNumber}</strong> · {version.status}
+                    <strong>V{version.versionNumber}</strong>{" "}
+                    <StatusBadge tone={designVersionTone(version.status)}>
+                      {version.status}
+                    </StatusBadge>
                     {version.submittedDate ? ` · ${version.submittedDate}` : ""}
                   </p>
                   <div className="flex flex-wrap gap-3 text-xs font-bold">
@@ -588,4 +594,17 @@ function Metric({
       </p>
     </div>
   );
+}
+
+function designStatusTone(status: DesignTask["status"]) {
+  if (status === "Waiting") return "waiting" as const;
+  if (status === "Approved" || status === "Closed") return "success" as const;
+  if (status === "In Progress") return "active" as const;
+  return "neutral" as const;
+}
+
+function designVersionTone(status: DesignVersion["status"]) {
+  if (status === "Approved") return "success" as const;
+  if (status === "Working" || status === "Submitted") return "active" as const;
+  return "neutral" as const;
 }

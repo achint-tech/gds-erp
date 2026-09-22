@@ -31,7 +31,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </span>
           </Link>
           <span className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-xs font-bold text-blue-800">
-            Visual prototype
+            Internal Project Management
           </span>
         </div>
         <nav
@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <footer className="mx-auto max-w-[1500px] px-5 py-7 text-xs text-slate-500 lg:px-8">
-        GDS ERP · Local prototype · Fictional data only
+        GDS ERP · Internal Project Management
       </footer>
     </div>
   );

@@ -2,6 +2,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition, type FormEvent } from "react";
 import { savePrintRequestAction } from "@/app/projects/print-request-actions";
+import { StatusBadge } from "@/components/status-badge";
 import {
   formatPrintSize,
   printRequestStatuses,
@@ -22,7 +23,9 @@ export function PersistentPrintRequests({
   const router = useRouter(),
     [pending, start] = useTransition(),
     [editing, setEditing] = useState<PrintRequest | "new" | null>(null),
-    [message, setMessage] = useState("");
+    [message, setMessage] = useState(""),
+    [fieldErrors, setFieldErrors] = useState<Record<string, string>>({}),
+    [isError, setIsError] = useState(false);
   if (loadError || !workspace)
     return (
       <section className="panel mt-5 p-5">
@@ -61,6 +64,8 @@ export function PersistentPrintRequests({
           ? "Print Request saved."
           : result.error || "Save failed.",
       );
+      setFieldErrors(result.fieldErrors ?? {});
+      setIsError(!result.success);
       if (result.success) {
         setEditing(null);
         router.refresh();
@@ -69,7 +74,7 @@ export function PersistentPrintRequests({
   }
   return (
     <section className="mt-5 space-y-4" aria-labelledby="print-heading">
-      <div className="flex justify-between gap-3">
+      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
         <div>
           <p className="eyebrow">Print / Branding</p>
           <h2 id="print-heading" className="mt-1 text-xl font-bold">
@@ -81,7 +86,12 @@ export function PersistentPrintRequests({
         </div>
         <button
           className="button button-primary"
-          onClick={() => setEditing("new")}
+          type="button"
+          onClick={() => {
+            setEditing("new");
+            setFieldErrors({});
+            setMessage("");
+          }}
         >
           + Raise Print Request
         </button>
@@ -92,12 +102,20 @@ export function PersistentPrintRequests({
         <Metric label="Ready" value={workspace.summary.ready} />
         <Metric label="Installed" value={workspace.summary.installed} />
       </div>
-      {message && <p className="text-sm font-semibold">{message}</p>}
+      {message && (
+        <p
+          className={`rounded-lg px-4 py-3 text-sm font-semibold ${isError ? "bg-red-50 text-red-800" : "bg-emerald-50 text-emerald-800"}`}
+          role={isError ? "alert" : "status"}
+        >
+          {message}
+        </p>
+      )}
       {editing && (
         <RequestForm
           request={editing === "new" ? null : editing}
           requesters={workspace.requesters}
           pending={pending}
+          errors={fieldErrors}
           onSubmit={submit}
           onCancel={() => setEditing(null)}
         />
@@ -136,7 +154,11 @@ export function PersistentPrintRequests({
                 <td className="px-3 py-4">{r.requestedBy}</td>
                 <td className="px-3 py-4">{r.requiredByDate || "—"}</td>
                 <td className="px-3 py-4">{r.vendorName || "—"}</td>
-                <td className="px-3 py-4">{r.status}</td>
+                <td className="px-3 py-4">
+                  <StatusBadge tone={printStatusTone(r.status)}>
+                    {r.status}
+                  </StatusBadge>
+                </td>
                 <td className="px-3 py-4">
                   {r.artworkLink ? (
                     <a
@@ -157,7 +179,12 @@ export function PersistentPrintRequests({
                   ) && (
                     <button
                       className="font-bold text-blue-800"
-                      onClick={() => setEditing(r)}
+                      type="button"
+                      onClick={() => {
+                        setEditing(r);
+                        setFieldErrors({});
+                        setMessage("");
+                      }}
                     >
                       Edit
                     </button>
@@ -185,25 +212,27 @@ function RequestForm({
   request,
   requesters,
   pending,
+  errors,
   onSubmit,
   onCancel,
 }: {
   request: PrintRequest | null;
   requesters: PrintRequestWorkspaceData["requesters"];
   pending: boolean;
+  errors: Record<string, string>;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCancel: () => void;
 }) {
   return (
     <form className="panel grid gap-4 p-5 md:grid-cols-3" onSubmit={onSubmit}>
-      <Input label="Print Type">
+      <Input label="Print Type" error={errors.printType}>
         <Select
           name="printType"
           value={request?.printType}
           options={printTypes}
         />
       </Input>
-      <Input label="Description">
+      <Input label="Description" error={errors.description}>
         <input
           className="control"
           name="description"
@@ -211,7 +240,7 @@ function RequestForm({
           required
         />
       </Input>
-      <Input label="Quantity">
+      <Input label="Quantity" error={errors.quantity}>
         <input
           className="control"
           name="quantity"
@@ -221,7 +250,7 @@ function RequestForm({
           required
         />
       </Input>
-      <Input label="Width">
+      <Input label="Width" error={errors.width || errors.dimensions}>
         <input
           className="control"
           name="width"
@@ -231,7 +260,7 @@ function RequestForm({
           defaultValue={request?.width ?? ""}
         />
       </Input>
-      <Input label="Height">
+      <Input label="Height" error={errors.height || errors.dimensions}>
         <input
           className="control"
           name="height"
@@ -241,7 +270,7 @@ function RequestForm({
           defaultValue={request?.height ?? ""}
         />
       </Input>
-      <Input label="Unit">
+      <Input label="Unit" error={errors.sizeUnit}>
         <Select
           name="sizeUnit"
           value={request?.sizeUnit ?? ""}
@@ -249,7 +278,7 @@ function RequestForm({
           optional
         />
       </Input>
-      <Input label="Location">
+      <Input label="Location" error={errors.location}>
         <input
           className="control"
           name="location"
@@ -257,7 +286,7 @@ function RequestForm({
           required
         />
       </Input>
-      <Input label="Requested By">
+      <Input label="Requested By" error={errors.requestedByUserId}>
         <Select
           name="requestedByUserId"
           value={request?.requestedByUserId}
@@ -279,7 +308,7 @@ function RequestForm({
           defaultValue={request?.vendorName ?? ""}
         />
       </Input>
-      <Input label="Status">
+      <Input label="Status" error={errors.status}>
         <Select
           name="status"
           value={request?.status ?? "Raised"}
@@ -318,9 +347,11 @@ function RequestForm({
 }
 function Input({
   label,
+  error,
   children,
 }: {
   label: string;
+  error?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -329,6 +360,7 @@ function Input({
         {label}
       </span>
       {children}
+      {error && <span className="error mt-1 block">{error}</span>}
     </label>
   );
 }
@@ -369,4 +401,13 @@ function Metric({ label, value }: { label: string; value: number }) {
       <p className="mt-1 text-2xl font-bold">{value}</p>
     </div>
   );
+}
+
+function printStatusTone(status: PrintRequest["status"]) {
+  if (status === "Cancelled") return "cancelled" as const;
+  if (status === "Installed" || status === "Ready") return "success" as const;
+  if (status === "Sent to Vendor") return "waiting" as const;
+  if (status === "In Production" || status === "Dispatched")
+    return "active" as const;
+  return "neutral" as const;
 }
