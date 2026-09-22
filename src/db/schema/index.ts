@@ -146,6 +146,14 @@ export const printRequestStatusEnum = pgEnum("print_request_status", [
   "Installed",
   "Cancelled",
 ]);
+export const purchaseWorkspaceStatusEnum = pgEnum("purchase_workspace_status", [
+  "Not Started",
+  "In Progress",
+  "Ordering",
+  "Partially Received",
+  "Received",
+  "Closed",
+]);
 
 const auditTimestamps = {
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" })
@@ -452,6 +460,32 @@ export const printRequests = pgTable(
   ],
 );
 
+export const projectPurchaseWorkspaces = pgTable(
+  "project_purchase_workspaces",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "restrict" }),
+    purchaseOwnerUserId: uuid("purchase_owner_user_id").references(
+      () => internalUsers.id,
+      { onDelete: "restrict" },
+    ),
+    status: purchaseWorkspaceStatusEnum("status")
+      .default("Not Started")
+      .notNull(),
+    purchaseSheetLink: text("purchase_sheet_link"),
+    notes: text("notes"),
+    ...auditTimestamps,
+  },
+  (table) => [
+    unique("project_purchase_workspaces_project_id_unique").on(table.projectId),
+    index("project_purchase_workspaces_owner_id_index").on(
+      table.purchaseOwnerUserId,
+    ),
+  ],
+);
+
 export type FinancialYear = typeof financialYears.$inferSelect;
 export type InternalUser = typeof internalUsers.$inferSelect;
 export type Project = typeof projects.$inferSelect;
@@ -466,3 +500,5 @@ export type ProjectQuotationVersion =
 export type DesignTask = typeof designTasks.$inferSelect;
 export type DesignVersion = typeof designVersions.$inferSelect;
 export type PrintRequest = typeof printRequests.$inferSelect;
+export type ProjectPurchaseWorkspace =
+  typeof projectPurchaseWorkspaces.$inferSelect;

@@ -156,19 +156,12 @@ Do not define workflow stages, department tabs, financial information, document 
 
 ## Purchase Workflow
 
-- The dedicated `Purchase` project section manages material, product, and item procurement only.
-- Execution subcontractors and vendor work orders are outside Purchase V1.
-- Project Overview contains only a compact Purchase summary.
-- Detailed material and item lists remain in Excel or Google Sheets for V1; ERP stores the corresponding Drive or Sheet link instead of native line items.
-- A Purchase Request may contain multiple supplier quotations.
-- Rate comparisons, supporting documents, supplier quotations, supplier POs, and urgent-purchase screenshots remain manually entered Google Drive or Google Sheets links.
-- Purchase Recommendation is not part of V1. After sourcing and optional rate comparison, requests proceed directly to Management Approval.
-- Management provides final Purchase approval; approval thresholds are not yet defined.
-- Supplier POs may record advance or credit dependencies without processing payments.
-- Delivery records receipt condition and may move an affected request to Replacement Pending.
-- Additional requirements after PO Issued create a new, optionally related Purchase Request.
-- Urgent Purchase is a lightweight local-prototype exception.
-- The Purchase Department dashboard provides a fictional cross-project view without authentication.
+- The dedicated `Purchase` project section manages Bought-Out Purchase: finished project items purchased externally rather than manufactured by GDS.
+- Production material procurement remains inside Production.
+- Each project has at most one Purchase control workspace with an optional active internal-user owner, overall status, Google Sheet link, and notes.
+- Detailed item, specification, quantity, vendor, rate, amount, PO, delivery, and remark data remains in the standardized Google Sheet and is not persisted as ERP line items.
+- Purchase workspace status is manually maintained and does not automatically change Project Status.
+- Supplier quotations, supplier POs, approvals, receipts, payments, Vendor Master, inventory, spreadsheet synchronization, and Print Request linkage are deferred.
 
 ## Prototype boundary
 

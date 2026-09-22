@@ -36,6 +36,13 @@
       "when": 1789976083039,
       "tag": "0004_shiny_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790095091366,
+      "tag": "0005_bitter_pretty_boy",
+      "breakpoints": true
     }
   ]
 }

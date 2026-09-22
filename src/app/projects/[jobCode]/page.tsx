@@ -37,6 +37,8 @@ import { designService } from "@/server/design/design-service";
 import type { DesignWorkspaceData } from "@/server/design/design-domain";
 import { printRequestService } from "@/server/print-requests/print-request-service";
 import type { PrintRequestWorkspaceData } from "@/server/print-requests/print-request-domain";
+import { purchaseWorkspaceService } from "@/server/purchase-workspace/purchase-workspace-service";
+import type { PurchaseWorkspaceData } from "@/server/purchase-workspace/purchase-workspace-domain";
 
 export const dynamic = "force-dynamic";
 
@@ -119,6 +121,15 @@ export default async function ProjectOverviewPage({
     } catch {
       printLoadError = true;
     }
+    let purchaseWorkspace: PurchaseWorkspaceData | null = null;
+    let purchaseLoadError = false;
+    try {
+      purchaseWorkspace = await purchaseWorkspaceService.getWorkspace(
+        persistedProject.id,
+      );
+    } catch {
+      purchaseLoadError = true;
+    }
     return (
       <PersistedProjectWorkspace
         project={persistedProject}
@@ -131,6 +142,8 @@ export default async function ProjectOverviewPage({
         designLoadError={designLoadError}
         printWorkspace={printWorkspace}
         printLoadError={printLoadError}
+        purchaseWorkspace={purchaseWorkspace}
+        purchaseLoadError={purchaseLoadError}
       />
     );
   }

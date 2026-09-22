@@ -26,8 +26,7 @@ Key decisions:
 | Quotation version | Historical child | `project_quotation_versions` |
 | Design task/version | Task with versioned drawing history | `design_tasks`, `design_versions` |
 | Print / Branding requirement | Operational project child | `print_requests` |
-| Purchase request, supplier quote and supplier PO | Core workflow plus children | Separate tables |
-| Urgent purchase | Lightweight exception | `urgent_purchases` |
+| Bought-Out Purchase control workspace | One-to-one project workflow | `project_purchase_workspaces` |
 | Vendor Work Order | Core project child | `vendor_work_orders` |
 | Production fixture/batch | Core project child | `production_batches` |
 | Production process and QC | Child and one-to-one child | Separate tables |
@@ -123,13 +122,10 @@ Purchase linkage is deferred until Purchase persistence is approved. Print Reque
 
 | Table | Important columns | Relationships and constraints | Derived/not stored |
 | --- | --- | --- | --- |
-| `purchase_requests` | `project_id`, optional related request ID, title, requester/owner user IDs or source text, dates, purpose, required-at/location, priority, status, material-list URL, supporting URL, rate-comparison-required/link, notes, approval decision/by/at/notes | Project has many; self-reference supports additional requirements | Requirement/delivery health |
-| `supplier_quotes` | `purchase_request_id`, supplier name, amount, quotation URL, status, notes, added date | Many per request; no recommendation/final-supplier field | Cheapest quote |
-| `supplier_pos` | `purchase_request_id`, PO number, supplier name, dates/amount/link, payment type, advance/credit dependency fields, delivery/receipt fields and condition | V1 zero-or-one per request; issued record protected | Delivery health |
-| `urgent_purchases` | `project_id`, description, amount, vendor name, purchaser, date, reason, screenshot URL, notes | Separate lightweight exception | Approval policy not yet approved |
+| `project_purchase_workspaces` | `project_id`, optional owner user ID, overall status, Google Sheet URL, notes | Unique project ID; owner references an active internal user through service validation | Spreadsheet rows and detailed Purchase working data |
 | `vendor_work_orders` | `project_id`, work category, vendor name, scope summary, WO number/date, commercial basis, agreed/payable amounts, execution dates, status, work-order URL, measurement URL, notes | Unique WO number within project; separate from Purchase | Deadline health, margin, vendor payment status |
 
-Keep Management Approval fields on `purchase_requests`; a generic approval engine is unnecessary at this stage. Store `vendor_name` and `supplier_name` directly in V1. Later migrations can create master records, backfill normalized names, add nullable IDs, and retain snapshot names on historical issued documents.
+Bought-Out Purchase V1 is a control/view layer over the standardized Google Sheet. Production material procurement remains separate inside Production. Supplier quotations, supplier POs, approvals, receipts, Vendor Master, and Purchase line-item persistence are deferred.
 
 ### Production, QC and Dispatch
 
